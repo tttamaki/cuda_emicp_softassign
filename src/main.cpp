@@ -27,8 +27,10 @@
 #include <cstdio>
 #include <cmath>
 #include <ctime>
+#include <cstdlib>
 
-#include <cutil.h>
+#include <helper_string.h>
+
 
 #include "3dregistration.h"
 #include "engine.h"
@@ -386,21 +388,21 @@ int main(int argc, char** argv){
 
   // Read filenames of point clouds X and Y.
   // File format is txt or ply. see readPointsFromFile() or readPointsFromPLYFile().
-  if (cutGetCmdLineArgumentstr(argc, (const char **) argv, "pointFileX", &pointFileX) &&
-      cutGetCmdLineArgumentstr(argc, (const char **) argv, "pointFileY", &pointFileY)){
+  if (getCmdLineArgumentString(argc, (const char **) argv, "pointFileX", &pointFileX) &&
+      getCmdLineArgumentString(argc, (const char **) argv, "pointFileY", &pointFileY)){
     cout << "option: pointFileX= " << pointFileX << endl;
     cout << "option: pointFileY=" << pointFileY << endl;
   } else
     wrongArg = 1;
 
   // if "-ply" is specified, assume files are in ply format.
-  int isPLY = cutCheckCmdLineFlag(argc, (const char **) argv, "ply"); // ply file format
+  int isPLY = checkCmdLineFlag(argc, (const char **) argv, "ply"); // ply file format
 
   int Xsize, Ysize;
 
   if (!isPLY){ // if not a ply file, number of points should be specified.
-    if (cutGetCmdLineArgumenti(argc, (const char **) argv, "Xsize", &Xsize) &&
-	cutGetCmdLineArgumenti(argc, (const char **) argv, "Ysize", &Ysize)){
+    if ( (Xsize = getCmdLineArgumentInt(argc, (const char **) argv, "Xsize") ) &&
+	 (Ysize = getCmdLineArgumentInt(argc, (const char **) argv, "Ysize") )   ){
       cout << "option: number of points in X= " << Xsize << endl;
       cout << "option: number of points in Y= " << Ysize << endl;
     } else
@@ -417,10 +419,10 @@ int main(int argc, char** argv){
   //
   // select algorithm
   //
-  int isICP = cutCheckCmdLineFlag(argc, (const char **) argv, "icp");
-  int isEMICP = cutCheckCmdLineFlag(argc, (const char **) argv, "emicp");
-  int isEMICP_CPU = cutCheckCmdLineFlag(argc, (const char **) argv, "emicpcpu");
-  int isSoftassign = cutCheckCmdLineFlag(argc, (const char **) argv, "softassign");
+  int isICP = checkCmdLineFlag(argc, (const char **) argv, "icp");
+  int isEMICP = checkCmdLineFlag(argc, (const char **) argv, "emicp");
+  int isEMICP_CPU = checkCmdLineFlag(argc, (const char **) argv, "emicpcpu");
+  int isSoftassign = checkCmdLineFlag(argc, (const char **) argv, "softassign");
 
   if (!isICP && !isEMICP && !isEMICP_CPU && !isSoftassign)
     isSoftassign = 1; // default algorithm
@@ -435,23 +437,16 @@ int main(int argc, char** argv){
 
   if(isSoftassign){ // softassign
 
-    // default parameters
-    param.JMAX = 100;
-    param.I0 = 5;
-    param.I1 = 3;
-    param.alpha = 3.0f;
-    param.T_0 = 100.0f;
-    param.TFACTOR = 0.95f;
-    param.moutlier = (float)(1/sqrtf(param.T_0)*expf(-1.0f));
+    if(! (param.JMAX  = getCmdLineArgumentInt(argc, (const char **) argv, "JMAX") ) ) param.JMAX = 100; // default parametersa
+    if(! (param.I0    = getCmdLineArgumentInt(argc, (const char **) argv, "I0"  ) ) ) param.I0 = 5;
+    if(! (param.I1    = getCmdLineArgumentInt(argc, (const char **) argv, "I1"  ) ) ) param.I1 = 3;
+    if(! (param.alpha = getCmdLineArgumentFloat(argc, (const char **) argv, "alpha") ) ) param.alpha = 3.0f;
+    if(! (param.T_0   = getCmdLineArgumentFloat(argc, (const char **) argv, "T_0"  ) ) ) param.T_0 = 100.0f;
+    if(! (param.TFACTOR  = getCmdLineArgumentFloat(argc, (const char **) argv, "TFACTOR" ) ) ) param.TFACTOR = 0.95f;
+    if(! (param.moutlier = getCmdLineArgumentFloat(argc, (const char **) argv, "moutlier") ) ) param.moutlier = (float)(1/sqrtf(param.T_0)*expf(-1.0f));
+   
 
-    cutGetCmdLineArgumenti(argc, (const char **) argv, "JMAX",  &param.JMAX);
-    cutGetCmdLineArgumenti(argc, (const char **) argv, "I0",    &param.I0);
-    cutGetCmdLineArgumenti(argc, (const char **) argv, "I1",    &param.I1);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "alpha", &param.alpha);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "T_0",   &param.T_0);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "TFACTOR", &param.TFACTOR);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "moutlier", &param.moutlier);
-    
+
     cout << "softassgin paramters" << endl
 	 << "JMAX " << param.JMAX << endl
 	 << "I0 " << param.I0 << endl
@@ -464,10 +459,8 @@ int main(int argc, char** argv){
 
   if(isICP){ // ICP
 
-    // default parameters
-    param.maxIteration = 30;
-
-    cutGetCmdLineArgumenti(argc, (const char **) argv, "maxIteration",  &param.maxIteration);
+    if(! (param.maxIteration = getCmdLineArgumentInt(argc, (const char **) argv, "maxIteration")) )
+      param.maxIteration = 30;// default parameters
 
     cout << "ICP paramters" << endl
 	 << "maxIteration " << param.maxIteration << endl;
@@ -475,16 +468,11 @@ int main(int argc, char** argv){
 
   if(isEMICP || isEMICP_CPU){ // EM-ICP
 
-    // default parameters
-    param.sigma_p2 = 0.01f;
-    param.sigma_inf = 0.00001f;
-    param.sigma_factor = 0.9f;
-    param.d_02 = 0.01f;
-
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "sigma_p2",  &param.sigma_p2);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "sigma_inf",  &param.sigma_inf);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "sigma_factor",  &param.sigma_factor);
-    cutGetCmdLineArgumentf(argc, (const char **) argv, "d_02",    &param.d_02);
+    
+    if(! (param.sigma_p2     = getCmdLineArgumentFloat(argc, (const char **) argv, "sigma_p2") ) )     param.sigma_p2 = 0.01f; // default parameters
+    if(! (param.sigma_inf    = getCmdLineArgumentFloat(argc, (const char **) argv, "sigma_inf") ) )    param.sigma_inf = 0.00001f;
+    if(! (param.sigma_factor = getCmdLineArgumentFloat(argc, (const char **) argv, "sigma_factor") ) ) param.sigma_factor = 0.9f;
+    if(! (param.d_02         = getCmdLineArgumentFloat(argc, (const char **) argv, "d_02") ) )	       param.d_02 = 0.01f;       
 
     cout << "EM-ICP paramters" << endl
 	 << "sigma_p2 " << param.sigma_p2 << endl
@@ -494,9 +482,9 @@ int main(int argc, char** argv){
 
   }
 
-  param.noviewer = cutCheckCmdLineFlag(argc, (const char **) argv, "noviewer");
-  param.notimer  = cutCheckCmdLineFlag(argc, (const char **) argv, "notimer");
-  param.nostop   = cutCheckCmdLineFlag(argc, (const char **) argv, "nostop");
+  param.noviewer = checkCmdLineFlag(argc, (const char **) argv, "noviewer");
+  param.notimer  = checkCmdLineFlag(argc, (const char **) argv, "notimer");
+  param.nostop   = checkCmdLineFlag(argc, (const char **) argv, "nostop");
 
 
   param.argc = argc;
@@ -529,7 +517,7 @@ int main(int argc, char** argv){
 
   
   float pointsReductionRate;
-  if (cutGetCmdLineArgumentf(argc, (const char **) argv, "pointsReductionRate", &pointsReductionRate)) {
+  if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRate") ) ) {
     pointsReduction(&h_X, Xsize, pointsReductionRate);
     pointsReduction(&h_Y, Ysize, pointsReductionRate);
     cout << "number of points are reduced to "
@@ -537,13 +525,13 @@ int main(int argc, char** argv){
 	 << "Xsize: " << Xsize << endl
 	 << "Ysize: " << Ysize << endl;
   }else{
-    if (cutGetCmdLineArgumentf(argc, (const char **) argv, "pointsReductionRateX", &pointsReductionRate) ) {
+    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateX") ) ) {
       pointsReduction(&h_X, Xsize, pointsReductionRate);
       cout << "number of points are reduced to "
 	   << pointsReductionRate << "% of original." << endl
 	   << "Xsize: " << Xsize << endl;
     }
-    if (cutGetCmdLineArgumentf(argc, (const char **) argv, "pointsReductionRateY", &pointsReductionRate) ) {
+    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateY") ) ) {
       pointsReduction(&h_Y, Ysize, pointsReductionRate);
       cout << "number of points are reduced to "
 	   << pointsReductionRate << "% of original." << endl
@@ -569,7 +557,7 @@ int main(int argc, char** argv){
 
 
     // just view and exit
-    if (cutCheckCmdLineFlag(argc, (const char **) argv, "viewer"))
+    if (checkCmdLineFlag(argc, (const char **) argv, "viewer"))
       while(1)
 	      if (!EngineIteration()) // PointCloudViewer
 	        exit(0);
@@ -599,7 +587,7 @@ int main(int argc, char** argv){
 
   {
     char *loadRTfromFilename;
-    if(cutGetCmdLineArgumentstr(argc, (const char **) argv, "loadRTfromFile", &loadRTfromFilename))
+    if(getCmdLineArgumentString(argc, (const char **) argv, "loadRTfromFile", &loadRTfromFilename))
       loadRTfromFile(h_R, h_t, loadRTfromFilename);
     else
       init_RT(h_R, h_t); // set R to Identity matrix, t to zero vector
@@ -639,7 +627,7 @@ int main(int argc, char** argv){
 
   {
     char *saveRTtoFilename;
-    if(cutGetCmdLineArgumentstr(argc, (const char **) argv, "saveRTtoFile", &saveRTtoFilename))
+    if(getCmdLineArgumentString(argc, (const char **) argv, "saveRTtoFile", &saveRTtoFilename))
       saveRTtoFile(h_R, h_t, saveRTtoFilename);
   }
 

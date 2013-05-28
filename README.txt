@@ -4,58 +4,45 @@ http://home.hiroshima-u.ac.jp/tamaki/study/cuda_softassign_emicp/
 Toru Tamaki, Miho Abe, Bisser Raytchev, Kazufumi Kaneda, Marcos Slomp (Hiroshima University, Japan)
 Contact address: tamaki@hiroshima-u.ac.jp
 
+Fri Apr  5 18:08:45 JST 2013
+
 
 
 * Requirements
 
-CUDA 3.0
-CUDA toolkit 3.0
-CUDA SDK 3.0
-
-CUDA 3.1 may work without any change.
+CUDA 5.0
 
 
 * How to use the demo application
 
-** Windows (win32 version) CUDA_EMICP_SOFTASSIGN.exe
-put the following files
-  win/bin-release/CUDA_EMICP_SOFTASSIGN.exe
-  win/freeglut/lib/freeglut.dll
-to the CUDA SDK directory:
-  C:\ProgramData\NVIDIA Corporation\NVIDIA GPU Computing SDK\C\bin\win32\Release
-where CUDA dll files (e.g., cublas32_30_14.dll, cutil32.dl, etc.) exist.
+** Windows : sorry, we don't have it
 
--** Fedore 11 (x64 version)
-use
-  src/CUDA_EMICP_SOFTASSIGN
+** Fedore 16 (x86_64)
 
-** other linux
-build the demo
+  $ ./src/CUDA_EMICP_SOFTASSIGN --help
 
-** demo usage
+
+** Usage
 ============================================================
-win32: CUDA_EMICP_SOFTASSIGN.exe [options]
-linux: CUDA_EMICP_SOFTASSIGN [options]
+CUDA_EMICP_SOFTASSIGN [options]
 
 This demo application finds R and t such that min ||X - (R*Y+t) || for given 3D point sets X and Y.
 
 At the start, the demo application popups a window where two point sets are shown.
     Press 'q' to start (restart) the alignment (after and during the alignment).
-    Press 'Esc' to quit the demo (after and during the alignment).
+    Press 'Esc' to quit the demo (after and during the alignment).a
     Press either '1', '2', or '3' to toggle on/off of the point sets.
 
 Examples:
-$ ./CUDA_EMICP_SOFTASSIGN -pointFileX=./data/P101.txt -Xsize=101 -pointFileY=./data/Qnew101.txt -Ysize=101 -emicp
+$ ./src/CUDA_EMICP_SOFTASSIGN -pointFileX=./data/P101.txt -Xsize=101 -pointFileY=./data/Qnew101.txt -Ysize=101 -emicp
     This aligns P101.txt and Qnew101.txt (both of 101 points) by using EM-ICP.
 
-$ ./CUDA_EMICP_SOFTASSIGN -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=5 -softassign
+$ ./src/CUDA_EMICP_SOFTASSIGN -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=5 -softassign
     This aligns bun000.ply and bun045.ply by using Softassign. Numbers of points in both point sets are reduced (randomly approximately) 5% of its original numbers.
 
 Demonstrations:
-linux
-$ make demo
-windows (cygwin gmake)
-$ make -f Makefile.win demo
+
+$ make -f Makefile.demo demo
 
 
 
@@ -142,29 +129,20 @@ tx ty tz
 
 * Build the demo application
 
-** Fedora 11
+** Fedora 16
 *** prepare packages:
-$ yum install lapack lapack-devel atlas atlas-devel "compat-gcc*" "freeglut*"
+$ yum install atlas atlas-devel "freeglut*"
 *** see src/Makefile and modify the following lines acoording to your system:
-  # CUDA_INSTALL_PATH := /usr/local/cuda
-  # CUDASDK_INSTALL_PATH := ./NVIDIA_GPU_Computing_SDK
-  # NVCCFLAGS := --compiler-bindir .
-  # LAPACKLIB := -L/usr/lib64/atlas -llapack -lptf77blas
-  # GLUT := -lglut
-*** link gcc3.4
-$ ln -s /usr/bin/gcc34 ./gcc
+ # CUDA_INSTALL_PATH := /usr/local/cuda-5.0
+ # CUDASDK_INSTALL_PATH := /usr/local/cuda-5.0/samples/common/inc
+ # LAPACKLIB := -L/usr/lib64/atlas -llapack -lptf77blas
+ # GLUTLIB := -lglut -lGLU -lGL
 *** make
-$ make all
+$ cd src; make
 
 ** other linux
 see src/Makefile and modify it acoording to your system.
 
-
-** Windows
-*** put all files in a dirctory created in the CUDA SDK: for example,
-  C:\ProgramData\NVIDIA Corporation\NVIDIA GPU Computing SDK\C\src\CUDA_EMICP_SOFTASSIGN\
-*** Build with the following solusion file (created by Visual Studio 2005)
-  CUDA_EMICP_SOFTASSIGN.sln
 
 
 
@@ -240,6 +218,7 @@ If you prefer to use the viewer,
 
 We kindly ask for users to refer
   Toru Tamaki, Miho Abe, Bisser Raytchev, Kazufumi Kaneda, Marcos Slomp, "CUDA-based implementations of Softassign and EM-ICP," CVPR2010 Demo, 2009.
+  Toru Tamaki, Miho Abe, Bisser Raytchev, Kazufumi Kaneda: "Softassign and EM-ICP on GPU", Proc. of The 2nd Workshop on Ultra Performance and Dependable Acceleration Systems (UPDAS), CD-ROM, 5 pages, 2010. http://dx.doi.org/10.1109/IC-NC.2010.60
 in your paper publised by using our implementation. Thank you!
 
 

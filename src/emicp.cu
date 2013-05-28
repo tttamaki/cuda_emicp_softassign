@@ -27,8 +27,10 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "cutil.h"
-#include "cublas.h"
+#include <cublas.h>
+#include <helper_cuda.h>
+#include <helper_timer.h>
+
 
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
@@ -265,7 +267,7 @@ void emicp(int Xsize, int Ysize,
   //
   // initializing CUDA
   //
-  CUT_DEVICE_INIT(param.argc, param.argv);
+  findCudaDevice(param.argc, (const char**)param.argv);
 
 
 
@@ -395,29 +397,33 @@ void emicp(int Xsize, int Ysize,
 #define START_TIMER(timer) \
   if(!param.notimer){ \
       CUDA_SAFE_CALL( cudaThreadSynchronize() );\
-      CUT_SAFE_CALL(cutStartTimer(timer)); \
+      CUT_SAFE_CALL(sdkStartTimer(&timer)); \
   }
 #define STOP_TIMER(timer) \
   if(!param.notimer){ \
       CUDA_SAFE_CALL( cudaThreadSynchronize() );\
-      CUT_SAFE_CALL(cutStopTimer(timer)); \
+      CUT_SAFE_CALL(sdkStopTimer(&timer)); \
   }
 
 
   // timers
-  unsigned int timerTotal, timerUpdateA, timerAfterSVD, timerRT;
+  StopWatchInterface
+    *timerTotal, 
+    *timerUpdateA, 
+    *timerAfterSVD, 
+    *timerRT;
 
 
   if(!param.notimer){
-    CUT_SAFE_CALL(cutCreateTimer(&timerUpdateA));
-    CUT_SAFE_CALL(cutCreateTimer(&timerAfterSVD));
-    CUT_SAFE_CALL(cutCreateTimer(&timerRT));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerUpdateA));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerAfterSVD));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerRT));
   }
 
 
-  CUT_SAFE_CALL(cutCreateTimer(&timerTotal));
+  CUT_SAFE_CALL(sdkCreateTimer(&timerTotal));
   CUDA_SAFE_CALL( cudaThreadSynchronize() );
-  CUT_SAFE_CALL(cutStartTimer(timerTotal));
+  CUT_SAFE_CALL(sdkStartTimer(&timerTotal));
 
 
 
@@ -434,7 +440,7 @@ void emicp(int Xsize, int Ysize,
   while(sigma_p2 > sigma_inf){
 
     fprintf(stderr, "%d iter. sigma_p2 %f  ", Titer++, sigma_p2);
-    fprintf(stderr, "time %.10f [s]\n", cutGetTimerValue(timerTotal) / 1000.0f);
+    fprintf(stderr, "time %.10f [s]\n", sdkGetTimerValue(&timerTotal) / 1000.0f);
 
 
 #ifndef NOVIEWER
@@ -658,20 +664,20 @@ void emicp(int Xsize, int Ysize,
 
 
   CUDA_SAFE_CALL( cudaThreadSynchronize() );
-  CUT_SAFE_CALL(cutStopTimer(timerTotal));
+  CUT_SAFE_CALL(sdkStopTimer(&timerTotal));
 
-  fprintf(stderr, "comping time: %.10f [s]\n", cutGetTimerValue(timerTotal) / 1000.0f);
+  fprintf(stderr, "comping time: %.10f [s]\n", sdkGetTimerValue(&timerTotal) / 1000.0f);
 
   if(!param.notimer){
 
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerUpdateA)  / 1000.0f, "updateA");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerAfterSVD) / 1000.0f, "afterSVD");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerRT) / 1000.0f, "RT");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerUpdateA)  / 1000.0f, "updateA");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerAfterSVD) / 1000.0f, "afterSVD");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerRT) / 1000.0f, "RT");
 
-    CUT_SAFE_CALL(cutDeleteTimer(timerTotal));
-    CUT_SAFE_CALL(cutDeleteTimer(timerUpdateA));
-    CUT_SAFE_CALL(cutDeleteTimer(timerAfterSVD));
-    CUT_SAFE_CALL(cutDeleteTimer(timerRT));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerTotal));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerUpdateA));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerAfterSVD));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerRT));
 
   }
 

@@ -383,7 +383,12 @@ bool EngineIteration(int Ysize, float* points2,
       h_Yy[i] = point[1];
       h_Yz[i] = point[2];
   }
-  theta_x = theta_y = theta_x = t_x = t_y = t_z = 0.0f;
+  theta_x = 0.0f;
+  theta_y = 0.0f;
+  theta_x = 0.0f;
+  t_x = 0.0f;
+  t_y = 0.0f;
+  t_z = 0.0f;
 
 
 

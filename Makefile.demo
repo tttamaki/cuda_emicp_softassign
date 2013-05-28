@@ -1,0 +1,139 @@
+# /*
+#   Copyright (c) 2010 Toru Tamaki
+#
+#   Permission is hereby granted, free of charge, to any person
+#   obtaining a copy of this software and associated documentation
+#   files (the "Software"), to deal in the Software without
+#   restriction, including without limitation the rights to use,
+#   copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the
+#   Software is furnished to do so, subject to the following
+#   conditions:
+#
+#   The above copyright notice and this permission notice shall be
+#   included in all copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+#   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+#   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+#   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+#   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+#   OTHER DEALINGS IN THE SOFTWARE.
+# */
+
+
+.PHONY: all clean bunnydemo
+
+
+all:
+	cd src; make
+
+clean:
+	cd src; make clean
+
+bunnydemo:
+	cd bunnydemo; make
+
+
+	
+#
+# test executions
+#
+ICPFLAGS := -emicp
+
+ifeq ($(icp),1)
+ICPFLAGS := -icp
+endif
+ifeq ($(emicp),1)
+ICPFLAGS := -emicp
+endif
+ifeq ($(emicpcpu),1)
+ICPFLAGS := -emicpcpu
+endif
+ifeq ($(softassign),1)
+ICPFLAGS := -softassign
+endif
+
+EXE := ./src/CUDA_EMICP_SOFTASSIGN
+
+101:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+504:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+1007:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+3097:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+5032:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+10064:
+	$(EXE) -pointFileX=./data/P$@.txt -Xsize=$@ -pointFileY=./data/Qnew$@.txt -Ysize=$@ $(ICPFLAGS)
+
+1000: 1007
+3000: 3097
+5000: 5032
+
+bunny000to045:
+	$(EXE) -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=5 $(ICPFLAGS)
+bunny000to045-10:
+	$(EXE) -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=10 $(ICPFLAGS)
+
+demo:
+
+	make -f Makefile.demo bunny000to045 icp=1
+	make -f Makefile.demo bunny000to045 softassign=1
+	make -f Makefile.demo bunny000to045 emicp=1
+	make -f Makefile.demo bunny1 emicp=1
+
+
+
+
+bunny1:
+	$(EXE) -pointFileX=./data/bun_zipper_points_1459.txt -pointsReductionRate=50 -Xsize=1459 -pointFileY=./data/bun045_40097.txt -Ysize=40097 $(ICPFLAGS)
+bunny2:
+	$(EXE) -pointFileY=./data/bun_zipper_points_1459.txt -pointsReductionRate=50 -Ysize=1459 -pointFileX=./data/bun045_40097.txt -Xsize=40097 $(ICPFLAGS)
+bunny3:
+	$(EXE) -pointFileX=./data/bun_zipper_points_1459.txt -Xsize=1459 -pointFileY=./data/Qnew3097.txt -Ysize=3097 $(ICPFLAGS)
+bunny4:
+	$(EXE) -pointFileY=./data/Qnew1007.txt -Ysize=1007 -pointFileX=./data/bun045_40097.txt -Xsize=40097 $(ICPFLAGS)
+
+points:
+	cd data; rm -f Qnew*.txt ; head -c 2 /dev/random | hexdump -e '2 "%u\n"' > seed.txt ; scilab -nb -nwni -f generatePoints.sci
+
+
+buildbunny: buildbunny1 buildbunny2 buildbunny3 buildbunny4 buildbunny5 buildbunny6
+
+buildbunny1:
+	$(EXE) -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -ply -pointsReductionRate=10 -saveRTtoFile=rt.txt $(ICPFLAGS) -nostop
+	./plytools/add_rigid_transform_ply ./data/bun045.ply ./data/bun045_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun000.ply ./data/bun045_trans.ply ./data/bun1.ply
+	rm -f ./data/bun045_trans.ply
+buildbunny2:
+	$(EXE) -pointFileX=./data/bun1.ply -pointFileY=./data/bun315.ply -ply -pointsReductionRate=10 -saveRTtoFile=rt.txt $(ICPFLAGS) -nostop
+	./plytools/add_rigid_transform_ply ./data/bun315.ply ./data/bun315_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun1.ply ./data/bun315_trans.ply ./data/bun2.ply
+	rm -f ./data/bun315_trans.ply ./data/bun1.ply
+buildbunny3:
+	$(EXE) -pointFileX=./data/bun090.ply -pointFileY=./data/top3.ply -ply -pointsReductionRate=10 -saveRTtoFile=rt.txt $(ICPFLAGS)  -sigma_inf=5e-5 -nostop
+	./plytools/add_rigid_transform_ply ./data/top3.ply ./data/top3_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun090.ply ./data/top3_trans.ply ./data/bun3.ply
+	rm -f ./data/top3_trans.ply
+buildbunny4:
+	$(EXE) -pointFileX=./data/bun180.ply -pointFileY=./data/ear_back.ply -ply -pointsReductionRate=10 -saveRTtoFile=rt.txt $(ICPFLAGS) -nostop
+	./plytools/add_rigid_transform_ply ./data/ear_back.ply ./data/ear_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun180.ply ./data/ear_trans.ply ./data/bun4.ply
+	rm -f ./data/ear_trans.ply
+buildbunny5:
+	$(EXE) -pointFileX=./data/bun4.ply -pointFileY=./data/top2.ply -ply -pointsReductionRate=10 -saveRTtoFile=rt.txt $(ICPFLAGS) -loadRTfromFile=./data/RT1.txt -nostop
+	./plytools/add_rigid_transform_ply ./data/top2.ply ./data/top2_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun4.ply ./data/top2_trans.ply ./data/bun5.ply
+	rm -f ./data/top2_trans.ply ./data/bun4.ply
+buildbunny6:
+	$(EXE) -pointFileX=./data/bun3.ply -pointFileY=./data/bun2.ply -ply -pointsReductionRate=5 -saveRTtoFile=rt.txt $(ICPFLAGS) -nostop
+	$(EXE) -pointFileX=./data/bun3.ply -pointFileY=./data/bun2.ply -ply -pointsReductionRate=5 -saveRTtoFile=rt.txt -icp -nostop -loadRTfromFile=rt.txt
+	./plytools/add_rigid_transform_ply ./data/bun2.ply ./data/bun2_trans.ply rt.txt
+	./plytools/merge_ply ./data/bun3.ply ./data/bun2_trans.ply ./data/bun6.ply
+	rm -f ./data/bun2_trans.ply
+	$(EXE) -pointFileX=./data/bun6.ply -pointFileY=./data/bun5.ply -ply -pointsReductionRate=5 -viewer

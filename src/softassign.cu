@@ -27,8 +27,10 @@
 #include <iostream>
 #include <cstdio>
 
-#include <cutil.h>
 #include <cublas.h>
+#include <helper_cuda.h>
+#include <helper_timer.h>
+
 
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
@@ -276,7 +278,7 @@ void softassign(const int Xsize, const int Ysize,
   //
   // initialize CUDA
   //
-  CUT_DEVICE_INIT(param.argc, param.argv);
+  findCudaDevice(param.argc, (const char**)param.argv);
 
 
 
@@ -414,40 +416,50 @@ void softassign(const int Xsize, const int Ysize,
 #define START_TIMER(timer) \
   if(!param.notimer){ \
       CUDA_SAFE_CALL( cudaThreadSynchronize() );\
-      CUT_SAFE_CALL(cutStartTimer(timer)); \
+      CUT_SAFE_CALL(sdkStartTimer(&timer)); \
   }
 #define STOP_TIMER(timer) \
   if(!param.notimer){ \
       CUDA_SAFE_CALL( cudaThreadSynchronize() );\
-      CUT_SAFE_CALL(cutStopTimer(timer)); \
+      CUT_SAFE_CALL(sdkStopTimer(&timer)); \
   }
 
 
   // timers
-  unsigned int timerTotal, 
-    timerUpdateM, timerShinkhorn, timerSumM,
-    timerGetWeightedXY, timerGetXcYc, timerCenteringXY, timerFindS, timerAfterSVD, timerRT,
-    timerShinkhorn1, timerShinkhorn2, timerShinkhorn3;
+  StopWatchInterface
+    *timerTotal, 
+    *timerUpdateM,
+    *timerShinkhorn,
+    *timerSumM,
+    *timerGetWeightedXY, 
+    *timerGetXcYc,
+    *timerCenteringXY,
+    *timerFindS,
+    *timerAfterSVD,
+    *timerRT,
+    *timerShinkhorn1,
+    *timerShinkhorn2,
+    *timerShinkhorn3;
 
   if(!param.notimer){
-    CUT_SAFE_CALL(cutCreateTimer(&timerUpdateM));
-    CUT_SAFE_CALL(cutCreateTimer(&timerShinkhorn));
-    CUT_SAFE_CALL(cutCreateTimer(&timerShinkhorn1));
-    CUT_SAFE_CALL(cutCreateTimer(&timerShinkhorn2));
-    CUT_SAFE_CALL(cutCreateTimer(&timerShinkhorn3));
-    CUT_SAFE_CALL(cutCreateTimer(&timerSumM));
-    CUT_SAFE_CALL(cutCreateTimer(&timerGetWeightedXY));
-    CUT_SAFE_CALL(cutCreateTimer(&timerGetXcYc));
-    CUT_SAFE_CALL(cutCreateTimer(&timerCenteringXY));
-    CUT_SAFE_CALL(cutCreateTimer(&timerFindS));
-    CUT_SAFE_CALL(cutCreateTimer(&timerAfterSVD));
-    CUT_SAFE_CALL(cutCreateTimer(&timerRT));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerUpdateM));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerShinkhorn));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerShinkhorn1));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerShinkhorn2));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerShinkhorn3));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerSumM));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerGetWeightedXY));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerGetXcYc));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerCenteringXY));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerFindS));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerAfterSVD));
+    CUT_SAFE_CALL(sdkCreateTimer(&timerRT));
   }
 
 
-  CUT_SAFE_CALL(cutCreateTimer(&timerTotal));
+  CUT_SAFE_CALL(sdkCreateTimer(&timerTotal));
   CUDA_SAFE_CALL( cudaThreadSynchronize() );
-  CUT_SAFE_CALL(cutStartTimer(timerTotal));
+  CUT_SAFE_CALL(sdkStartTimer(&timerTotal));
 
 
 
@@ -466,7 +478,7 @@ void softassign(const int Xsize, const int Ysize,
   for(int Titer = 1; Titer <= JMAX; Titer++){
 
     fprintf(stderr, "%d iter. temp. %f  ", Titer, T_cur);
-    fprintf(stderr, "time %.10f [s]\n", cutGetTimerValue(timerTotal) / 1000.0f);
+    fprintf(stderr, "time %.10f [s]\n", sdkGetTimerValue(&timerTotal) / 1000.0f);
 
 #ifndef NOVIEWER
     if(!param.noviewer){
@@ -805,37 +817,37 @@ void softassign(const int Xsize, const int Ysize,
 
 
   CUDA_SAFE_CALL( cudaThreadSynchronize() );
-  CUT_SAFE_CALL(cutStopTimer(timerTotal));
+  CUT_SAFE_CALL(sdkStopTimer(&timerTotal));
 
-  fprintf(stderr, "comping time: %.10f [s]\n", cutGetTimerValue(timerTotal) / 1000.0f);
+  fprintf(stderr, "comping time: %.10f [s]\n", sdkGetTimerValue(&timerTotal) / 1000.0f);
 
   if(!param.notimer){
 
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerUpdateM)  / 1000.0f, "updateM");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerShinkhorn)/ 1000.0f, "shinkhorn");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerShinkhorn1)/ 1000.0f, "shinkhorn1");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerShinkhorn2)/ 1000.0f, "shinkhorn2");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerShinkhorn3)/ 1000.0f, "shinkhorn3");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerSumM)  / 1000.0f, "SumM");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerGetWeightedXY)   / 1000.0f, "getMXY");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerGetXcYc)  / 1000.0f, "getXcYc");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerCenteringXY) / 1000.0f, "getNewXY");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerFindS)    / 1000.0f, "findS");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerAfterSVD) / 1000.0f, "afterSVD");
-    fprintf(stderr, "Average %.10f [s] for %s\n", cutGetAverageTimerValue(timerRT) / 1000.0f, "RT");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerUpdateM)  / 1000.0f, "updateM");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerShinkhorn)/ 1000.0f, "shinkhorn");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerShinkhorn1)/ 1000.0f, "shinkhorn1");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerShinkhorn2)/ 1000.0f, "shinkhorn2");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerShinkhorn3)/ 1000.0f, "shinkhorn3");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerSumM)  / 1000.0f, "SumM");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerGetWeightedXY)   / 1000.0f, "getMXY");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerGetXcYc)  / 1000.0f, "getXcYc");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerCenteringXY) / 1000.0f, "getNewXY");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerFindS)    / 1000.0f, "findS");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerAfterSVD) / 1000.0f, "afterSVD");
+    fprintf(stderr, "Average %.10f [s] for %s\n", sdkGetAverageTimerValue(&timerRT) / 1000.0f, "RT");
 
-    CUT_SAFE_CALL(cutDeleteTimer(timerTotal));
-    CUT_SAFE_CALL(cutDeleteTimer(timerUpdateM));
-    CUT_SAFE_CALL(cutDeleteTimer(timerShinkhorn));
-    CUT_SAFE_CALL(cutDeleteTimer(timerShinkhorn1));
-    CUT_SAFE_CALL(cutDeleteTimer(timerShinkhorn2));
-    CUT_SAFE_CALL(cutDeleteTimer(timerShinkhorn3));
-    CUT_SAFE_CALL(cutDeleteTimer(timerSumM));
-    CUT_SAFE_CALL(cutDeleteTimer(timerGetWeightedXY));
-    CUT_SAFE_CALL(cutDeleteTimer(timerGetXcYc));
-    CUT_SAFE_CALL(cutDeleteTimer(timerCenteringXY));
-    CUT_SAFE_CALL(cutDeleteTimer(timerFindS));
-    CUT_SAFE_CALL(cutDeleteTimer(timerAfterSVD));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerTotal));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerUpdateM));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerShinkhorn));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerShinkhorn1));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerShinkhorn2));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerShinkhorn3));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerSumM));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerGetWeightedXY));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerGetXcYc));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerCenteringXY));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerFindS));
+    CUT_SAFE_CALL(sdkDeleteTimer(&timerAfterSVD));
 
   }
 

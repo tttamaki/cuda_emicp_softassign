@@ -27,11 +27,11 @@
 #
 # Check the following variables: these may differ in your environment
 #
-# CUDA_INSTALL_PATH := /usr/local/cuda
-# CUDASDK_INSTALL_PATH := ./NVIDIA_GPU_Computing_SDK
-# NVCCFLAGS := --compiler-bindir .
+# CUDA_INSTALL_PATH := /usr/local/cuda-5.0
+# CUDASDK_INSTALL_PATH := /usr/local/cuda-5.0/samples/common/inc
 # LAPACKLIB := -L/usr/lib64/atlas -llapack -lptf77blas
-# GLUT := -lglut
+# GLUTLIB := -lglut -lGLU -lGL
+
 
 
 #
@@ -61,20 +61,11 @@ CC_DEPS := $(CU_DEPS)
 # CUDA
 #
 
-CUDA_INSTALL_PATH := /usr/local/cuda
-CUDASDK_INSTALL_PATH := ./NVIDIA_GPU_Computing_SDK
+CUDA_INSTALL_PATH := /usr/local/cuda-5.0
+
 
 # Compilers
 NVCC := $(CUDA_INSTALL_PATH)/bin/nvcc
-
-NVCCFLAGS := --compiler-bindir .
-# NOTE: 
-# On Fedora 11, gcc4.4 doesn't work. Instead, you need gcc3.4 by
-# # yum install "compat-gcc-34*"
-# Also, nvcc requires a C compiler with name "gcc".
-# Threfore, you need "ln -s /usr/bin/gcc34 ./gcc" and
-# tell nvcc the location of it.
-
 
 
 
@@ -82,8 +73,7 @@ NVCCFLAGS := --compiler-bindir .
 # Includes
 #
 
-# dir of cutil.h in cudasdk
-CUDASDK_INCLUDES  := -I$(CUDASDK_INSTALL_PATH)/C/common/inc/
+CUDASDK_INCLUDES  := -I$(CUDA_INSTALL_PATH)/samples/common/inc/
 
 INCLUDES  += -I. -I$(CUDA_INSTALL_PATH)/include $(CUDASDK_INCLUDES)
 
@@ -93,12 +83,8 @@ INCLUDES  += -I. -I$(CUDA_INSTALL_PATH)/include $(CUDASDK_INCLUDES)
 #
 
 # CUDA libararies
-ifeq ($(emulation),1)
-# emulation mode ("make emulation=1")
-CUDALIB := -deviceemu -L$(CUDA_INSTALL_PATH)/lib64  -lcublasemu -lcudart -lcuda
-else 
 CUDALIB := -L$(CUDA_INSTALL_PATH)/lib64  -lcublas -lcudart -lcuda
-endif
+
 
 
 # library of lapack and blas
@@ -106,15 +92,10 @@ endif
 # library of lapack and atlas
 LAPACKLIB := -L/usr/lib64/atlas -llapack -lptf77blas
 
-# cudasdk library
-CUDASDKLIB := -L$(CUDASDK_INSTALL_PATH)/C/lib/ -lcutil_x86_64
-
 # freeglut library
-GLUTLIB := -lglut
+GLUTLIB := -lglut -lGLU -lGL
 
-
-LDFLAGS += $(CUDALIB) $(CUDASDKLIB) $(GLUTLIB) $(LAPACKLIB)
-
+LDFLAGS += $(CUDALIB) $(GLUTLIB) $(LAPACKLIB)
 
 
 
@@ -123,7 +104,7 @@ LDFLAGS += $(CUDALIB) $(CUDASDKLIB) $(GLUTLIB) $(LAPACKLIB)
 #
 
 CXXWARN_FLAGS := \
-        -W -Wall -Wimplicit -Wswitch -Wformat -Wchar-subscripts \
+        -W -Wall -Wswitch -Wformat -Wchar-subscripts \
         -Wparentheses -Wmultichar -Wtrigraphs  -Wpointer-arith \
         -Wcast-align -Wreturn-type -Wno-unused-function
 
@@ -142,10 +123,6 @@ CXXFLAGS  += $(CXXWARN_FLAGS) $(COMMONFLAGS) 	$(DEBUGFLAGS)
 CFLAGS    += $(CXXWARN_FLAGS) $(COMMONFLAGS)
 
 
-
-ifeq ($(emulation),1)
-NVCCFLAGS += -deviceemu
-endif
 
 
 # require openMP for emicp_cpu
@@ -177,8 +154,4 @@ $(TARGET): $(OBJS) rply.o
 all: $(TARGET)
 
 clean:
-	$(RM) $(OBJS) $(TARGET)
-
-
-
-
+	$(RM) $(OBJS) $(TARGET) rply.o

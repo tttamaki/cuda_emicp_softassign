@@ -113,4 +113,8 @@ void UpdatePointCloud2(int Ysize, float* points2,
 void printRT(const float* R, const float* t);
 
 
+
+#define CUDA_SAFE_CALL(a) a
+#define CUT_SAFE_CALL(a) a
+
 #endif

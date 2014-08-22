@@ -32,120 +32,25 @@
 #include <helper_string.h>
 
 
+
+#include <pcl/io/ply_io.h>
+#include <pcl/io/vtk_lib_io.h>
+#include <pcl/point_types.h>
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/filters/filter_indices.h>
+
+#include <vtkRenderWindow.h>
+#include <vtkRendererCollection.h>
+#include <vtkCamera.h>
+
+
+
 #include "3dregistration.h"
-#include "engine.h"
-#include "rply.h"
 
 using namespace std;
 
 
 
-
-void InitPointCloud(const float* h_X, const int Xsize,
-		    const float* h_Y, const int Ysize,
-		    float* &points1, float* &points2, float* &points3)
-{
-
-  const float* h_Xx = &h_X[Xsize*0];
-  const float* h_Xy = &h_X[Xsize*1];
-  const float* h_Xz = &h_X[Xsize*2];
-
-  const float* h_Yx = &h_Y[Ysize*0];
-  const float* h_Yy = &h_Y[Ysize*1];
-  const float* h_Yz = &h_Y[Ysize*2];
-
-  // Generate a random point cloud:
-  points1 = new float[Xsize*3];
-  for (int i=0; i<Xsize; i++)
-    {
-      float* point = &points1[i*3];
-      point[0] = h_Xx[i];
-      point[1] = h_Xy[i];
-      point[2] = h_Xz[i];
-    }
-  // Inform the engine about the first point cloud ("index" 0)...
-  EnginePointCloudData(0, points1, Xsize);
-  // ... and some fancy attributes like color and point size.
-  EnginePointCloudDecoration(0, 1.0f, 1.0f, 0.0f, 2.0f);
-
-  // Another point cloud:
-  points2 = new float[Ysize*3];
-  for (int i=0; i<Ysize; i++)
-    {
-      float* point = &points2[i*3];
-      point[0] = h_Yx[i];
-      point[1] = h_Yy[i];
-      point[2] = h_Yz[i];
-    }
-  // The second point cloud has "index" 1.
-  EnginePointCloudData(1, points2, Ysize);
-  EnginePointCloudDecoration(1, 0.0f, 1.0f, 1.0f, 2.0f);
-
-
-#if 1
-
-  // third point cloud:
-  points3 = new float[Ysize*3];
-  for (int i=0; i<Ysize; i++)
-    {
-      float* point = &points3[i*3];
-      point[0] = h_Yx[i];
-      point[1] = h_Yy[i];
-      point[2] = h_Yz[i];
-    }
-
-  EnginePointCloudData(2, points3, Ysize);
-  EnginePointCloudDecoration(2, 1.0f, 1.0f, 1.0f, 2.0f);
-
-#endif
-
-}
-
-
-
-
-
-
-void UpdatePointCloud2(int Ysize, float* points2,
-		       const float* h_Y, const float* h_R, const float* h_t)
-{
-  const float* h_Yx = &h_Y[Ysize*0];
-  const float* h_Yy = &h_Y[Ysize*1];
-  const float* h_Yz = &h_Y[Ysize*2];
-
-  // Another point cloud:
-  for (int i=0; i<Ysize; i++)
-    {
-      float* point = &points2[i*3];
-      point[0] = (h_R[0]*h_Yx[i] + h_R[1]*h_Yy[i] + h_R[2]*h_Yz[i]) + h_t[0];
-      point[1] = (h_R[3]*h_Yx[i] + h_R[4]*h_Yy[i] + h_R[5]*h_Yz[i]) + h_t[1];
-      point[2] = (h_R[6]*h_Yx[i] + h_R[7]*h_Yy[i] + h_R[8]*h_Yz[i]) + h_t[2];
-    }
-  // The second point cloud has "index" 1.
-  EnginePointCloudData(1, points2, Ysize);
-  //EnginePointCloudDecoration(1, 0.0f, 1.0f, 1.0f, 2.0f);
-}
-
-
-
-
-
-// callback function for reading vertecis
-static int ply_vertex_cb(p_ply_argument argument) {
-
-  void *pdata;
-  long indexCoord;
-  ply_get_argument_user_data(argument, &pdata, &indexCoord);
-
-  float *h_Xx = *((float**)pdata); // pointer to array for storing vertices
-
-  long index;
-  ply_get_argument_element(argument, NULL, &index); // index of a vertex
-
-  h_Xx[index] = (float)ply_get_argument_value(argument);
-
-  return 1;
-}
 
 
 //
@@ -163,87 +68,38 @@ static int ply_vertex_cb(p_ply_argument argument) {
 //           Note that this reads points of "element vertex" of property float x, y, z.
 //           Be care those points are actually 3D points, not vertices of a triangle mesh face.
 //
-void readPointsFromPLYFile(float **X, int &Xsize, const char* filename){
+void readPointsFromFile(float **X, int &Xsize, const char* fileName, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
 
-    p_ply ply;
+  
+  pcl::PolygonMesh mesh;
 
-    ply = ply_open(filename, NULL);
-    if (!ply) {
-      fprintf(stderr, "there is no inputPLY file [%s].\n", filename);
-      fprintf(stderr, "or, inputPLY file [%s] is not ply format.\n", filename);
-      exit(1);
-    }
-    if (!ply_read_header(ply)) {
-      fprintf(stderr, "inputPLY file [%s] is not ply format.\n", filename);
-      exit(1);
-    }
-
-    Xsize = ply_set_read_cb(ply, "vertex", "x", ply_vertex_cb, NULL, 1); // dummy call
-
-    float *h_X = new float [Xsize * 3];
-    float* h_Xx = &h_X[Xsize*0];
-    float* h_Xy = &h_X[Xsize*1];
-    float* h_Xz = &h_X[Xsize*2];
-    ply_set_read_cb(ply, "vertex", "x", ply_vertex_cb, &h_Xx, 1);
-    ply_set_read_cb(ply, "vertex", "y", ply_vertex_cb, &h_Xy, 2);
-    ply_set_read_cb(ply, "vertex", "z", ply_vertex_cb, &h_Xz, 3);
-
-    if (!ply_read(ply)){  // read entire data at once
-      fprintf(stderr, "inputPLY file [%s] can not be read.\n", filename);
-      exit(1);
-    }
-
-    ply_close(ply);
-
-    *X = h_X;
-}
-
-
-//
-// Read points from file.
-//
-// X: pointer to a pointer of memory area where points will be stored.
-//    on entry, X should be NULL (not allocated)
-//    on exit, memory area of (Xsize*3*sizeof(float)) is allocated,
-//             and points are stored in the order of
-//             [X_x1 X_x2 .... X_x(Xsize) X_y1 X_y2 .... X_y(Xsize)  X_z1 X_z2 .... X_z(Xsize) ],
-//             where (X_xi X_yi X_zi) is the i-th point in X.
-// Xsize: the number of points in the file.
-//    on entry, Xsize should be given.
-// filename: filename of a text file of points.
-//    file format ... x y z coordinates of a point are stored in a line.
-//    example:
-// 0.068554 0.177457 0.005994 
-// 0.081259 0.162169 0.071445 
-// 0.085632 0.151002 0.085873 
-// ...
-void readPointsFromFile(float **X, int Xsize, const char* filename){
-
-  FILE *fp;
-  float x, y, z;
-  int i = 0;
-
-  float *h_X = new float [Xsize * 3];
-  float *h_Xx = &h_X[Xsize*0];
-  float *h_Xy = &h_X[Xsize*1];
-  float *h_Xz = &h_X[Xsize*2];
-
-  if((fp = fopen(filename, "r")) != NULL){
-    while (i < Xsize && fscanf(fp,"%f%f%f", &x, &y, &z)!=EOF){
-      h_Xx[i] = x;
-      h_Xy[i] = y;
-      h_Xz[i] = z;
-      i++;
-    }
-    fclose(fp);
-  } else {
-    fprintf(stderr, "No file [%s]\n", filename);
-    exit(1);
+  if ( pcl::io::loadPolygonFile ( fileName, mesh ) == -1 )
+  {
+    PCL_ERROR ( "loadFile faild." );
+    return;
   }
-
+  else
+    pcl::fromPCLPointCloud2<pcl::PointXYZ> ( mesh.cloud, *cloud );
+  
+  // remove points having values of nan
+  std::vector<int> index;
+  pcl::removeNaNFromPointCloud ( *cloud, *cloud, index );
+  
+  Xsize = cloud->size();
+  
+  float* h_X = new float [Xsize * 3];
+  float* h_Xx = &h_X[Xsize*0];
+  float* h_Xy = &h_X[Xsize*1];
+  float* h_Xz = &h_X[Xsize*2];
+  for (int i = 0; i < Xsize; i++)
+  {
+    h_Xx[i] = cloud->points[i].x;
+    h_Xy[i] = cloud->points[i].y;
+    h_Xz[i] = cloud->points[i].z;
+  }
+  
   *X = h_X;
 }
-
 
 
 
@@ -392,28 +248,14 @@ int main(int argc, char** argv){
       getCmdLineArgumentString(argc, (const char **) argv, "pointFileY", &pointFileY)){
     cout << "option: pointFileX= " << pointFileX << endl;
     cout << "option: pointFileY=" << pointFileY << endl;
-  } else
-    wrongArg = 1;
-
-  // if "-ply" is specified, assume files are in ply format.
-  int isPLY = checkCmdLineFlag(argc, (const char **) argv, "ply"); // ply file format
-
-  int Xsize, Ysize;
-
-  if (!isPLY){ // if not a ply file, number of points should be specified.
-    if ( (Xsize = getCmdLineArgumentInt(argc, (const char **) argv, "Xsize") ) &&
-	 (Ysize = getCmdLineArgumentInt(argc, (const char **) argv, "Ysize") )   ){
-      cout << "option: number of points in X= " << Xsize << endl;
-      cout << "option: number of points in Y= " << Ysize << endl;
-    } else
-      wrongArg = 1;
-  }
-
-  if(wrongArg){
+  } else {
     cerr << "Wrong arguments. see src." << endl;
     cerr << "min ||X - (R*Y+t) || " << endl;
     exit(1);
   }
+
+
+  int Xsize, Ysize;
 
 
   //
@@ -504,16 +346,13 @@ int main(int argc, char** argv){
   // where (X_xi X_yi X_zi) is the i-th point in X.
   //
   // h_Y does as the same way.
+
+  param.cloud_source.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
+  param.cloud_target.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
+  param.cloud_source_trans.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
+  readPointsFromFile(&h_X, Xsize, pointFileX, param.cloud_source);
+  readPointsFromFile(&h_Y, Ysize, pointFileY, param.cloud_target);
   
-  if(!isPLY){
-    readPointsFromFile(&h_X, Xsize, pointFileX);
-    readPointsFromFile(&h_Y, Ysize, pointFileY);
-  }else{
-    readPointsFromPLYFile(&h_X, Xsize, pointFileX);
-    readPointsFromPLYFile(&h_Y, Ysize, pointFileY);
-    cout << "Xsize: " << Xsize << endl
-	 << "Ysize: " << Ysize << endl;
-  }
 
   
   float pointsReductionRate;
@@ -545,23 +384,35 @@ int main(int argc, char** argv){
 
 
 
-
+  
 
 
   if(!param.noviewer){
-    // PointCloudViewer
-    EngineInit();
-    EngineCameraSetup(0.2f);
-    InitPointCloud(h_X, Xsize,  h_Y, Ysize,
-                   param.points1, param.points2, param.points3);  // returns pointers points1,2,3 for visualization
 
-
-    // just view and exit
-    if (checkCmdLineFlag(argc, (const char **) argv, "viewer"))
-      while(1)
-	      if (!EngineIteration()) // PointCloudViewer
-	        exit(0);
-
+    
+    param.viewer.reset ( new pcl::visualization::PCLVisualizer ("3D Viewer") );
+    param.viewer->setBackgroundColor (0, 0, 0);
+    
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> source_color ( param.cloud_source, 0, 255, 0 );
+    param.viewer->addPointCloud<pcl::PointXYZ> ( param.cloud_source, source_color, "source");
+    param.viewer->setPointCloudRenderingProperties (pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "source");
+    
+    pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> target_color ( param.cloud_target, 255, 255, 255 );
+    param.viewer->addPointCloud<pcl::PointXYZ> ( param.cloud_target, target_color, "target");
+    param.viewer->setPointCloudRenderingProperties ( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "target" );
+    
+    param.source_trans_color.reset ( new pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> ( param.cloud_source_trans, 255, 0, 255) );
+    param.viewer->addPointCloud<pcl::PointXYZ> ( param.cloud_source_trans, *param.source_trans_color, "source trans" );
+    param.viewer->setPointCloudRenderingProperties ( pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "source trans" );
+    
+    
+    // orthographic (parallel) projection; same with pressing key 'o'
+    param.viewer->getRenderWindow()->GetRenderers()->GetFirstRenderer()->GetActiveCamera()->SetParallelProjection( 1 );
+    
+    param.viewer->resetCamera();
+    
+    param.viewer->spin();
+    
   }
 
 
@@ -572,91 +423,73 @@ int main(int argc, char** argv){
 
 
 
-
-
-  if(!param.noviewer && !param.nostop)
-    while(EngineIteration(Ysize, param.points2, h_Y,  h_R, h_t)); // PointCloudViewer
-    if(isWinFlag()) // press ESC ; exit
-      ;
-    else // press 'q' : continue
-      setWinFlag();
-
-
+  
   do {
-
-
-  {
-    char *loadRTfromFilename;
-    if(getCmdLineArgumentString(argc, (const char **) argv, "loadRTfromFile", &loadRTfromFilename))
-      loadRTfromFile(h_R, h_t, loadRTfromFilename);
-    else
-      init_RT(h_R, h_t); // set R to Identity matrix, t to zero vector
-  }
-  printRT(h_R, h_t);
-
-
-
-
-
-
-  clock_t start, end;
-  start = clock();
-
-  if(isICP)
-    icp(Xsize, Ysize, h_X, h_Y, // input
+    
+    {
+      char *loadRTfromFilename;
+      if(getCmdLineArgumentString(argc, (const char **) argv, "loadRTfromFile", &loadRTfromFilename))
+	loadRTfromFile(h_R, h_t, loadRTfromFilename);
+      else
+	init_RT(h_R, h_t); // set R to Identity matrix, t to zero vector
+    }
+    printRT(h_R, h_t);
+    
+    
+    
+    
+    
+    
+    clock_t start, end;
+    start = clock();
+    
+    if(isICP)
+      icp(Xsize, Ysize, h_X, h_Y, // input
+	  h_R, h_t, // return
+	  param);
+#if 0
+      else if(isEMICP)
+	emicp(Xsize, Ysize, h_X, h_Y, // input
 	      h_R, h_t, // return
+       param);
+      else if(isEMICP_CPU)
+	emicp_cpu(Xsize, Ysize, h_X, h_Y, // input
+		  h_R, h_t, // return
+	   param);
+	else
+	  softassign(Xsize, Ysize, h_X, h_Y, // input
+		     h_R, h_t, //return
 	      param);
-  else if(isEMICP)
-    emicp(Xsize, Ysize, h_X, h_Y, // input
-	        h_R, h_t, // return
-	        param);
-  else if(isEMICP_CPU)
-    emicp_cpu(Xsize, Ysize, h_X, h_Y, // input
-	      h_R, h_t, // return
-	      param);
-  else
-    softassign(Xsize, Ysize, h_X, h_Y, // input
-	       h_R, h_t, //return
-	       param);
+#endif
 
-  end = clock();
-  printf("elapsed %f\n", (double)(end - start) / CLOCKS_PER_SEC);
+    end = clock();
+    printf("elapsed %f\n", (double)(end - start) / CLOCKS_PER_SEC);
 
-
-  printRT(h_R, h_t);
-
-  {
-    char *saveRTtoFilename;
-    if(getCmdLineArgumentString(argc, (const char **) argv, "saveRTtoFile", &saveRTtoFilename))
-      saveRTtoFile(h_R, h_t, saveRTtoFilename);
+    
+    printRT(h_R, h_t);
+    
+    {
+      char *saveRTtoFilename;
+      if(getCmdLineArgumentString(argc, (const char **) argv, "saveRTtoFile", &saveRTtoFilename))
+	saveRTtoFile(h_R, h_t, saveRTtoFilename);
+    }
+    
+    
+    
+    if(!param.noviewer && !param.nostop)
+       param.viewer->spin();
+      
   }
-
-
-
-  if(!param.noviewer && !param.nostop)
-    while(EngineIteration(Ysize, param.points2, h_Y,  h_R, h_t)); // PointCloudViewer
-    if(isWinFlag()) // press ESC ; exit
-      break;
-    else // press 'q' : continue
-      setWinFlag();
-
-  }
-  while(!param.noviewer && !param.nostop);
-
-
-  if(!param.noviewer){
-    delete [] param.points1;
-    delete [] param.points2;
-    delete [] param.points3;
-    EngineShutDown();
-  }
-
+  while( !param.viewer->wasStopped() );
+  
+  
+  
   delete [] h_X;
   delete [] h_Y;
   delete [] h_R;
   delete [] h_t;
-
-
+  
+  
 
   return 0;
 }

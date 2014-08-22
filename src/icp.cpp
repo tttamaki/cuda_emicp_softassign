@@ -33,7 +33,6 @@
 //#define NOVIEWER
 
 #include "3dregistration.h"
-#include "engine.h"
 
 
 extern "C" {
@@ -119,7 +118,7 @@ void icp(int Xsize, int Ysize,
          const float* h_X,
          const float* h_Y,
 	 float* h_R, float* h_t, 
-	 registrationParameters param
+	 const registrationParameters &param
 	 ){
 
   //
@@ -211,9 +210,14 @@ void icp(int Xsize, int Ysize,
 
 #ifndef NOVIEWER
     if(!param.noviewer){
-      UpdatePointCloud2(Ysize, param.points2, h_Y, h_R, h_t);
-      if (!EngineIteration())
-	break;
+      Eigen::Matrix4f transformation;
+      transformation <<
+      			h_R[0], h_R[1], h_R[2], h_t[0],
+			h_R[3], h_R[4], h_R[5], h_t[1],
+			h_R[6], h_R[7], h_R[8], h_t[2];
+      pcl::transformPointCloud ( *param.cloud_source, *param.cloud_source_trans, transformation );
+      param.viewer->updatePointCloud ( param.cloud_source_trans, *param.source_trans_color, "source trans" );
+      param.viewer->spinOnce();
     }
 #endif
 

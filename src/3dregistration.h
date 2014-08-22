@@ -27,6 +27,11 @@
 #define _3DREGISTRATION_H_
 
 
+#include <pcl/visualization/cloud_viewer.h>
+#include <pcl/common/transforms.h>
+
+
+
 // threads in a 2D block is BLOCK_SIZE*BLOCK_SIZE
 #define BLOCK_SIZE 16
 
@@ -59,9 +64,14 @@ typedef struct {
   int argc;
   char **argv;
 
-  float *points1;
-  float *points2;
-  float *points3;
+  
+  boost::shared_ptr< pcl::visualization::PCLVisualizer > viewer;
+  pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ>::Ptr source_trans_color;// ( cloud_source_trans, 255, 0, 255 );
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source_trans;
+  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target;
+  
+  
   
 } registrationParameters;
 
@@ -69,32 +79,32 @@ typedef struct {
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
 
-
+#if 0
 void softassign(const int Xsize, const int Ysize,
 		const float* h_X,
 		const float* h_Y,
 		float* h_R, float* h_t, 
-		registrationParameters param
+		const registrationParameters &param
 		);
 
 void emicp(int Xsize, int Ysize,
 	   const float* h_X,
 	   const float* h_Y,
 	   float* h_R, float* h_t, 
-	   registrationParameters param
+	   const registrationParameters &param
 	   );
 void emicp_cpu(int Xsize, int Ysize,
                const float* h_X,
                const float* h_Y,
                float* h_R, float* h_t,
-	       registrationParameters param
+	       const registrationParameters &param
 	       );
-
+#endif
 void icp(int Xsize, int Ysize,
          const float* h_X,
          const float* h_Y,
 	 float* h_R, float* h_t, 
-	 registrationParameters param);
+	 const registrationParameters &param);
 
 
 

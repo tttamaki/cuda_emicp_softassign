@@ -350,8 +350,8 @@ int main(int argc, char** argv){
   param.cloud_source.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
   param.cloud_target.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
   param.cloud_source_trans.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
-  readPointsFromFile(&h_X, Xsize, pointFileX, param.cloud_source);
-  readPointsFromFile(&h_Y, Ysize, pointFileY, param.cloud_target);
+  readPointsFromFile(&h_X, Xsize, pointFileX, param.cloud_target);
+  readPointsFromFile(&h_Y, Ysize, pointFileY, param.cloud_source);
   
 
   

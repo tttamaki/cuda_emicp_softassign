@@ -29,6 +29,9 @@
 #include <unistd.h>
 #endif
 
+#include <flann/flann.hpp>
+
+
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
 
@@ -121,6 +124,7 @@ void icp(int Xsize, int Ysize,
 	 const registrationParameters &param
 	 ){
 
+
   //
   // initialize paramters
   //
@@ -151,35 +155,67 @@ void icp(int Xsize, int Ysize,
 
   findCenter(h_Y, Ysize, h_Yc);
 
+  
+  
+  
 
+  
+  float *m_X = new float [Xsize*3];
+  for (int i = 0; i < Xsize; i++)
+  {
+    for (int j = 0; j < 3; j++)
+    {
+      m_X[i*3 + 0] = h_Xx[i];
+      m_X[i*3 + 1] = h_Xy[i];
+      m_X[i*3 + 2] = h_Xz[i];
+    }
+  }
+  flann::Matrix<float> mat_X(m_X, Xsize, 3); // Xsize rows and 3 columns
+  
+  flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams(16) );
+  index.buildIndex();   
+
+
+
+  
   // ICP main loop
 
   for(int iter=0; iter < maxIteration; iter++){
 
 
     // find closest points
-#pragma omp parallel for
-    for(int i = 0; i < Ysize; i++){
-      float min_dist = 10e+10f;
-      int min_index = 0;
-
-      for(int j = 0; j < Xsize; j++){
-	float dist = distanceSquareRT(h_Xx[j], h_Xy[j], h_Xz[j],
-				      h_Yx[i], h_Yy[i], h_Yz[i],
-				      h_R, h_t);
-	if(dist < min_dist){
-	  min_dist = dist;
-	  min_index = j;	  
-	}
+    
+    float *m_Y = new float [Ysize*3];
+    for (int i = 0; i < Ysize; i++)
+    {
+      for (int j = 0; j < 3; j++)
+      {
+	m_Y[i*3 + 0] = (h_R[0]*h_Yx[i] + h_R[1]*h_Yy[i] + h_R[2]*h_Yz[i]) + h_t[0];
+	m_Y[i*3 + 1] = (h_R[3]*h_Yx[i] + h_R[4]*h_Yy[i] + h_R[5]*h_Yz[i]) + h_t[1];
+	m_Y[i*3 + 2] = (h_R[6]*h_Yx[i] + h_R[7]*h_Yy[i] + h_R[8]*h_Yz[i]) + h_t[2];
       }
-
-      // put the closest point to Ycorr
-      h_Xcorrx[i] = h_Xx[min_index];
-      h_Xcorry[i] = h_Xy[min_index];
-      h_Xcorrz[i] = h_Xz[min_index];
     }
-
-
+    flann::Matrix<float> mat_Y(m_Y, Ysize, 3); // ysize rows and 3 columns
+    
+    
+    std::vector< std::vector<size_t> > indices;
+    std::vector< std::vector<float> >  dists;
+    
+    index.knnSearch(mat_Y,
+		    indices,
+		    dists,
+		    1, // k of knn
+		    flann::SearchParams(32) );
+    
+    #pragma omp parallel for
+    for(int i = 0; i < Ysize; i++){
+      // put the closest point to Ycorr
+      h_Xcorrx[i] = h_Xx[indices[i][0]];
+      h_Xcorry[i] = h_Xy[indices[i][0]];
+      h_Xcorrz[i] = h_Xz[indices[i][0]];
+    }
+    
+    
 
     // compute S
 
@@ -214,7 +250,8 @@ void icp(int Xsize, int Ysize,
       transformation <<
       			h_R[0], h_R[1], h_R[2], h_t[0],
 			h_R[3], h_R[4], h_R[5], h_t[1],
-			h_R[6], h_R[7], h_R[8], h_t[2];
+			h_R[6], h_R[7], h_R[8], h_t[2],
+			0, 0, 0, 1;
       pcl::transformPointCloud ( *param.cloud_source, *param.cloud_source_trans, transformation );
       param.viewer->updatePointCloud ( param.cloud_source_trans, *param.source_trans_color, "source trans" );
       param.viewer->spinOnce();

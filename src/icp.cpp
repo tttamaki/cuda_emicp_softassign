@@ -163,16 +163,13 @@ void icp(int Xsize, int Ysize,
   float *m_X = new float [Xsize*3];
   for (int i = 0; i < Xsize; i++)
   {
-    for (int j = 0; j < 3; j++)
-    {
-      m_X[i*3 + 0] = h_Xx[i];
-      m_X[i*3 + 1] = h_Xy[i];
-      m_X[i*3 + 2] = h_Xz[i];
-    }
+    m_X[i*3 + 0] = h_Xx[i];
+    m_X[i*3 + 1] = h_Xy[i];
+    m_X[i*3 + 2] = h_Xz[i];
   }
   flann::Matrix<float> mat_X(m_X, Xsize, 3); // Xsize rows and 3 columns
   
-  flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams(16) );
+  flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams() );
   index.buildIndex();   
 
 
@@ -186,26 +183,24 @@ void icp(int Xsize, int Ysize,
     // find closest points
     
     float *m_Y = new float [Ysize*3];
+    #pragma omp parallel for
     for (int i = 0; i < Ysize; i++)
     {
-      for (int j = 0; j < 3; j++)
-      {
-	m_Y[i*3 + 0] = (h_R[0]*h_Yx[i] + h_R[1]*h_Yy[i] + h_R[2]*h_Yz[i]) + h_t[0];
-	m_Y[i*3 + 1] = (h_R[3]*h_Yx[i] + h_R[4]*h_Yy[i] + h_R[5]*h_Yz[i]) + h_t[1];
-	m_Y[i*3 + 2] = (h_R[6]*h_Yx[i] + h_R[7]*h_Yy[i] + h_R[8]*h_Yz[i]) + h_t[2];
-      }
+      m_Y[i*3 + 0] = (h_R[0]*h_Yx[i] + h_R[1]*h_Yy[i] + h_R[2]*h_Yz[i]) + h_t[0];
+      m_Y[i*3 + 1] = (h_R[3]*h_Yx[i] + h_R[4]*h_Yy[i] + h_R[5]*h_Yz[i]) + h_t[1];
+      m_Y[i*3 + 2] = (h_R[6]*h_Yx[i] + h_R[7]*h_Yy[i] + h_R[8]*h_Yz[i]) + h_t[2];
     }
-    flann::Matrix<float> mat_Y(m_Y, Ysize, 3); // ysize rows and 3 columns
+    flann::Matrix<float> mat_Y(m_Y, Ysize, 3); // Ysize rows and 3 columns
     
     
-    std::vector< std::vector<size_t> > indices;
-    std::vector< std::vector<float> >  dists;
+    std::vector< std::vector<size_t> > indices(Ysize);
+    std::vector< std::vector<float> >  dists(Ysize);
     
     index.knnSearch(mat_Y,
 		    indices,
 		    dists,
 		    1, // k of knn
-		    flann::SearchParams(32) );
+		    flann::SearchParams() );
     
     #pragma omp parallel for
     for(int i = 0; i < Ysize; i++){
@@ -215,6 +210,7 @@ void icp(int Xsize, int Ysize,
       h_Xcorrz[i] = h_Xz[indices[i][0]];
     }
     
+    delete [] m_Y;
     
 
     // compute S
@@ -261,7 +257,7 @@ void icp(int Xsize, int Ysize,
 
   }
 
-
+  delete [] m_X;
   delete [] h_Xcorr;
 
 

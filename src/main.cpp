@@ -372,20 +372,20 @@ int main(int argc, char** argv){
       icp( param.cloud_target, param.cloud_source, // input
 	   h_R, h_t, // return
 	   param);
-//       if(isEMICP)
-// 	emicp( param.cloud_target, param.cloud_source, // input
-// 	       h_R, h_t, // return
-// 	param);
-      if(isEMICP_CPU)
-	emicp_cpu(param.cloud_target, param.cloud_source, // input
-		  h_R, h_t, // return
-		  param);
-// 	if(isSoftassign)
-// 	  softassign(Xsize, Ysize, h_X, h_Y, // input
-// 		     h_R, h_t, //return
-// 	      param);
-	  
-	  
+    if(isEMICP)
+	emicp( param.cloud_target, param.cloud_source, // input
+	       h_R, h_t, // return
+	       param);
+    if(isEMICP_CPU)
+	emicp_cpu( param.cloud_target, param.cloud_source, // input
+		   h_R, h_t, // return
+	           param);
+    if(isSoftassign)
+	softassign( param.cloud_target, param.cloud_source, // input
+		    h_R, h_t, // return
+	            param);
+	
+	
     end = clock();
     printf("elapsed %f\n", (double)(end - start) / CLOCKS_PER_SEC);
 

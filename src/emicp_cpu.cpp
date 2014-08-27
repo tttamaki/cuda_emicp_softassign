@@ -181,26 +181,6 @@ centeringXandY(int rowsA,
 
 
 
-void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-		float **X, int &Xsize )
-{
-  
-  Xsize = cloud->size();
-  
-  float* h_X = new float [Xsize * 3];
-  float* h_Xx = &h_X[Xsize*0];
-  float* h_Xy = &h_X[Xsize*1];
-  float* h_Xz = &h_X[Xsize*2];
-  for (int i = 0; i < Xsize; i++)
-  {
-    h_Xx[i] = cloud->points[i].x;
-    h_Xy[i] = cloud->points[i].y;
-    h_Xz[i] = cloud->points[i].z;
-  }
-  
-  *X = h_X;
-}
-
 
 
 void emicp_cpu(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 

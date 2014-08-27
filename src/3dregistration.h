@@ -114,7 +114,10 @@ void UpdatePointCloud2(int Ysize, float* points2,
 
 void printRT(const float* R, const float* t);
 
-
+void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+		float **X, int &Xsize );
+void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+		boost::shared_array<float> &X, int &Xsize );
 
 #define CUDA_SAFE_CALL(a) a
 #define CUT_SAFE_CALL(a) a

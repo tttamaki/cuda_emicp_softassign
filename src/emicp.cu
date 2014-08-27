@@ -246,13 +246,17 @@ centeringXandY(int rowsA,
 
 
 
-void emicp(int Xsize, int Ysize,
-	   const float* h_X,
-	   const float* h_Y,
+void emicp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	   const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 	   float* h_R, float* h_t, 
-	   const registrationParameters &param
-	   ){
-
+	   const registrationParameters &param)
+{
+  
+  int Xsize, Ysize;
+  float *h_X, *h_Y;
+  cloud2data(cloud_target, &h_X, Xsize);
+  cloud2data(cloud_source, &h_Y, Ysize);
+  
   
   //
   // initialize paramters

@@ -108,10 +108,6 @@ void findRTfromS(const float* h_Xc,
 
 
 
-void UpdatePointCloud2(int Ysize, float* points2,
-		       const float* h_Y, const float* h_R, const float* h_t);
-
-
 void printRT(const float* R, const float* t);
 
 void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,

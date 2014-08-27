@@ -23,6 +23,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+find_package(Boost 1.54 REQUIRED)
 
 find_package(CUDA 6.5 REQUIRED)
 include_directories ( ${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc/ )
@@ -46,7 +47,7 @@ add_definitions ( ${LAPACK_LINKER_FLAGS} )
 
 
 #cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp src/softassign.cu src/emicp.cu )
-cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp )
+cuda_add_executable ( ${PROJECT_NAME} src/3dregistration.h src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp)
 target_link_libraries ( ${PROJECT_NAME} ${PCL_LIBRARIES} ${LAPACK_LIBRARIES} )
 
 CUDA_ADD_CUBLAS_TO_TARGET ( ${PROJECT_NAME} )

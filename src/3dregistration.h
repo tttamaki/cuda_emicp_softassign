@@ -79,25 +79,20 @@ typedef struct {
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
 
-void softassign(const int Xsize, const int Ysize,
-		const float* h_X,
-		const float* h_Y,
+void softassign(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+		const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 		float* h_R, float* h_t, 
 		const registrationParameters &param
 		);
-
-void emicp(int Xsize, int Ysize,
-	   const float* h_X,
-	   const float* h_Y,
+void emicp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	   const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 	   float* h_R, float* h_t, 
-	   const registrationParameters &param
-	   );
-void emicp_cpu(int Xsize, int Ysize,
-               const float* h_X,
-               const float* h_Y,
-               float* h_R, float* h_t,
+	   const registrationParameters &param);
+void emicp_cpu(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	       const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
+	       float* h_R, float* h_t,
 	       const registrationParameters &param
-	       );
+);
 void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
 	 const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 	 float* h_R, float* h_t, 

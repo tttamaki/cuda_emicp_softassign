@@ -139,14 +139,10 @@ void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 
 void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
 	 const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
-	
-// 	 int Xsize, int Ysize,
-//          const float* h_X,
-//          const float* h_Y,
 	 float* h_R, float* h_t, 
-	 const registrationParameters &param
-	 ){
-
+	 const registrationParameters &param)
+{
+  
   
   int Xsize, Ysize;
   boost::shared_array<float> h_X, h_Y;

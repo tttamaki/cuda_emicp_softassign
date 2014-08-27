@@ -181,16 +181,42 @@ centeringXandY(int rowsA,
 
 
 
+void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+		float **X, int &Xsize )
+{
+  
+  Xsize = cloud->size();
+  
+  float* h_X = new float [Xsize * 3];
+  float* h_Xx = &h_X[Xsize*0];
+  float* h_Xy = &h_X[Xsize*1];
+  float* h_Xz = &h_X[Xsize*2];
+  for (int i = 0; i < Xsize; i++)
+  {
+    h_Xx[i] = cloud->points[i].x;
+    h_Xy[i] = cloud->points[i].y;
+    h_Xz[i] = cloud->points[i].z;
+  }
+  
+  *X = h_X;
+}
 
 
 
-
-void emicp_cpu(int Xsize, int Ysize,
-	       const float* h_X,
-               const float* h_Y,
+void emicp_cpu(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	       const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 	       float* h_R, float* h_t, 
-	       const registrationParameters &param
-	       ){
+	       const registrationParameters &param)
+{
+  
+  
+  
+  int Xsize, Ysize;
+  float *h_X, *h_Y;
+  cloud2data(cloud_target, &h_X, Xsize);
+  cloud2data(cloud_source, &h_Y, Ysize);
+  
+  
 
   // const for blas functions
   float onef = 1.0f;
@@ -214,13 +240,13 @@ void emicp_cpu(int Xsize, int Ysize,
   // memory allocation
   //
 
-  const float* h_Xx = &h_X[Xsize*0];
-  const float* h_Xy = &h_X[Xsize*1];
-  const float* h_Xz = &h_X[Xsize*2];
-
-  const float* h_Yx = &h_Y[Ysize*0];
-  const float* h_Yy = &h_Y[Ysize*1];
-  const float* h_Yz = &h_Y[Ysize*2];
+   const float* h_Xx = &h_X[Xsize*0];
+   const float* h_Xy = &h_X[Xsize*1];
+   const float* h_Xz = &h_X[Xsize*2];
+ 
+   const float* h_Yx = &h_Y[Ysize*0];
+   const float* h_Yy = &h_Y[Ysize*1];
+   const float* h_Yz = &h_Y[Ysize*2];
 
   float *h_Xprime = new float [Ysize*3];
   float *h_XprimeX = &h_Xprime[Ysize*0];

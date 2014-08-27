@@ -45,7 +45,8 @@ add_definitions ( ${LAPACK_LINKER_FLAGS} )
 
 
 
-cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp src/softassign.cu src/emicp.cu )
+#cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp src/softassign.cu src/emicp.cu )
+cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp )
 target_link_libraries ( ${PROJECT_NAME} ${PCL_LIBRARIES} ${LAPACK_LIBRARIES} )
 
 CUDA_ADD_CUBLAS_TO_TARGET ( ${PROJECT_NAME} )

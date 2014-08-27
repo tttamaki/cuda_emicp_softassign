@@ -52,27 +52,13 @@ using namespace std;
 
 
 
-
-//
-// Read points from ply format file.
-//
-// X: pointer to a pointer of memory area where points will be stored.
-//    on entry, X should be NULL (not allocated)
-//    on exit, memory area of (Xsize*3*sizeof(float)) is allocated,
-//             and points are stored in the order of
-//             [X_x1 X_x2 .... X_x(Xsize-1) X_y1 X_y2 .... X_y(Xsize-1)  X_z1 X_z2 .... X_z(Xsize-1) ],
-//             where (X_xi X_yi X_zi) is the i-th point in X.
-// Xsize: the number of points in the file.
-//    on exit, Xsize is returned.
-// filename: filename of a ply format file.
-//           Note that this reads points of "element vertex" of property float x, y, z.
-//           Be care those points are actually 3D points, not vertices of a triangle mesh face.
-//
-void readPointsFromFile(float **X, int &Xsize, const char* fileName, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
-
-  
+void
+loadFile(const char* fileName,
+	 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
+)
+{
   pcl::PolygonMesh mesh;
-
+  
   if ( pcl::io::loadPolygonFile ( fileName, mesh ) == -1 )
   {
     PCL_ERROR ( "loadFile faild." );
@@ -84,80 +70,31 @@ void readPointsFromFile(float **X, int &Xsize, const char* fileName, pcl::PointC
   // remove points having values of nan
   std::vector<int> index;
   pcl::removeNaNFromPointCloud ( *cloud, *cloud, index );
-  
-  Xsize = cloud->size();
-  
-  float* h_X = new float [Xsize * 3];
-  float* h_Xx = &h_X[Xsize*0];
-  float* h_Xy = &h_X[Xsize*1];
-  float* h_Xz = &h_X[Xsize*2];
-  for (int i = 0; i < Xsize; i++)
-  {
-    h_Xx[i] = cloud->points[i].x;
-    h_Xy[i] = cloud->points[i].y;
-    h_Xz[i] = cloud->points[i].z;
-  }
-  
-  *X = h_X;
 }
 
 
 
 
-void pointsReduction(float **X, int &Xsize,
+void pointsReduction(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 		     float random_sampling_percentage, bool initialize_rand = true){
 
-#ifndef WIN32
-  if (initialize_rand) srand48((long)time(NULL));
-#else
-  if (initialize_rand) srand((long)time(NULL));
-#endif
 
-  int number_of_randomly_sampled_points = 0;
+  if (initialize_rand) srand((long)time(NULL));
+  
   random_sampling_percentage /= 100.0f;
 
-  int *flag = new int[Xsize];
-  for(int i = 0; i < Xsize; i++)
-#ifndef WIN32
-    if(drand48() < random_sampling_percentage){
-      flag[i] = 1;
-      number_of_randomly_sampled_points++;
-    }else
-      flag[i] = 0;
-#else
-    if(rand()/(double)RAND_MAX < random_sampling_percentage){
-      flag[i] = 1;
-      number_of_randomly_sampled_points++;
-    }else
-      flag[i] = 0;
-#endif
+  pcl::PointCloud<pcl::PointXYZ>::iterator it;
 
-
-  float *Xorg = *X;
-  float *Xorgx = &Xorg[Xsize*0];
-  float *Xorgy = &Xorg[Xsize*1];
-  float *Xorgz = &Xorg[Xsize*2];
-
-  float *Xnew = new float [number_of_randomly_sampled_points * 3];
-  float *Xnewx = &Xnew[number_of_randomly_sampled_points*0];
-  float *Xnewy = &Xnew[number_of_randomly_sampled_points*1];
-  float *Xnewz = &Xnew[number_of_randomly_sampled_points*2];
-
-  number_of_randomly_sampled_points = 0;
-  for(int i = 0; i < Xsize; i++){
-    if(flag[i] == 1){
-      Xnewx[number_of_randomly_sampled_points] = Xorgx[i];
-      Xnewy[number_of_randomly_sampled_points] = Xorgy[i];
-      Xnewz[number_of_randomly_sampled_points] = Xorgz[i];
-      number_of_randomly_sampled_points++;
-    }
+  for (it = cloud->begin(); it != cloud->end(); )
+  {
+    if(rand()/(double)RAND_MAX >= random_sampling_percentage)
+      it = cloud->erase( it );
+    else
+      it++;
   }
-  delete [] flag;
 
-  delete [] *X;
-  *X = Xnew;
-  Xsize = number_of_randomly_sampled_points;
 }
+
 
 
 
@@ -350,33 +287,20 @@ int main(int argc, char** argv){
   param.cloud_source.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
   param.cloud_target.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
   param.cloud_source_trans.reset ( new pcl::PointCloud<pcl::PointXYZ> () );
-  readPointsFromFile(&h_X, Xsize, pointFileX, param.cloud_target);
-  readPointsFromFile(&h_Y, Ysize, pointFileY, param.cloud_source);
-  
+  loadFile(pointFileX, param.cloud_target);
+  loadFile(pointFileY, param.cloud_source);
 
   
   float pointsReductionRate;
   if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRate") ) ) {
-    pointsReduction(&h_X, Xsize, pointsReductionRate);
-    pointsReduction(&h_Y, Ysize, pointsReductionRate);
+    pointsReduction(param.cloud_target, pointsReductionRate);
+    pointsReduction(param.cloud_source, pointsReductionRate);
     cout << "number of points are reduced to "
 	 << pointsReductionRate << "% of original." << endl
-	 << "Xsize: " << Xsize << endl
-	 << "Ysize: " << Ysize << endl;
-  }else{
-    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateX") ) ) {
-      pointsReduction(&h_X, Xsize, pointsReductionRate);
-      cout << "number of points are reduced to "
-	   << pointsReductionRate << "% of original." << endl
-	   << "Xsize: " << Xsize << endl;
-    }
-    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateY") ) ) {
-      pointsReduction(&h_Y, Ysize, pointsReductionRate);
-      cout << "number of points are reduced to "
-	   << pointsReductionRate << "% of original." << endl
-	   << "Ysize: " << Ysize << endl;
-    }
+	 << "Xsize: " << param.cloud_target->size() << endl
+	 << "Ysize: " << param.cloud_source->size() << endl;
   }
+  
 
 
 
@@ -445,9 +369,11 @@ int main(int argc, char** argv){
     start = clock();
     
     if(isICP)
-      icp(Xsize, Ysize, h_X, h_Y, // input
+      icp( param.cloud_target, param.cloud_source,
+	   //Xsize, Ysize, h_X, h_Y, // input
 	  h_R, h_t, // return
 	  param);
+#if 0
       else if(isEMICP)
 	emicp(Xsize, Ysize, h_X, h_Y, // input
 	      h_R, h_t, // return
@@ -460,7 +386,7 @@ int main(int argc, char** argv){
 	  softassign(Xsize, Ysize, h_X, h_Y, // input
 		     h_R, h_t, //return
 	      param);
-
+#endif
 
     end = clock();
     printf("elapsed %f\n", (double)(end - start) / CLOCKS_PER_SEC);
@@ -474,7 +400,7 @@ int main(int argc, char** argv){
 	saveRTtoFile(h_R, h_t, saveRTtoFilename);
     }
     
-    if(param.noviewer || param.nostop)
+    if ( param.noviewer || param.nostop || param.viewer->wasStopped() )
       break;
     else
       param.viewer->spin();

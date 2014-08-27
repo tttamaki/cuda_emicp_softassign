@@ -25,9 +25,8 @@
 
 
 #include <iostream>
-#ifndef WIN32
-#include <unistd.h>
-#endif
+
+#include <boost/shared_array.hpp>
 
 #include <flann/flann.hpp>
 
@@ -117,14 +116,45 @@ findCenter(const float* h_X, const int Xsize,
 #endif
 
 
-void icp(int Xsize, int Ysize,
-         const float* h_X,
-         const float* h_Y,
+void cloud2data(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+		boost::shared_array<float> &X, int &Xsize )
+{
+  
+  Xsize = cloud->size();
+  
+  float* h_X = new float [Xsize * 3];
+  float* h_Xx = &h_X[Xsize*0];
+  float* h_Xy = &h_X[Xsize*1];
+  float* h_Xz = &h_X[Xsize*2];
+  for (int i = 0; i < Xsize; i++)
+  {
+    h_Xx[i] = cloud->points[i].x;
+    h_Xy[i] = cloud->points[i].y;
+    h_Xz[i] = cloud->points[i].z;
+  }
+  
+  X.reset( h_X );
+}
+
+
+void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	 const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
+	
+// 	 int Xsize, int Ysize,
+//          const float* h_X,
+//          const float* h_Y,
 	 float* h_R, float* h_t, 
 	 const registrationParameters &param
 	 ){
 
-
+  
+  int Xsize, Ysize;
+  boost::shared_array<float> h_X, h_Y;
+  cloud2data(cloud_target, h_X, Xsize);
+  cloud2data(cloud_source, h_Y, Ysize);
+  
+  
+  
   //
   // initialize paramters
   //
@@ -134,40 +164,38 @@ void icp(int Xsize, int Ysize,
   //
   // memory allocation
   //
+  
+  
+  float* h_Xx = h_X.get() + Xsize*0;
+  float* h_Xy = h_X.get() + Xsize*1;
+  float* h_Xz = h_X.get() + Xsize*2;
+  
+  float* h_Yx = h_Y.get() + Ysize*0;
+  float* h_Yy = h_Y.get() + Ysize*1;
+  float* h_Yz = h_Y.get() + Ysize*2;
 
+  boost::shared_array<float> h_Xcorr ( new float[Ysize*3] ); // points in X corresponding to Y
 
-  const float* h_Xx = &h_X[Xsize*0];
-  const float* h_Xy = &h_X[Xsize*1];
-  const float* h_Xz = &h_X[Xsize*2];
-
-  const float* h_Yx = &h_Y[Ysize*0];
-  const float* h_Yy = &h_Y[Ysize*1];
-  const float* h_Yz = &h_Y[Ysize*2];
-
-  float* h_Xcorr = new float[Ysize*3]; // points in X corresponding to Y
-  float* h_Xcorrx = &h_Xcorr[Ysize*0];
-  float* h_Xcorry = &h_Xcorr[Ysize*1];
-  float* h_Xcorrz = &h_Xcorr[Ysize*2];
 
   float h_S[9];
   float h_Xc[3];
   float h_Yc[3];
 
-  findCenter(h_Y, Ysize, h_Yc);
+  findCenter(h_Y.get(), Ysize, h_Yc);
 
   
   
   
 
   // building flann index
-  float *m_X = new float [Xsize*3];
+  boost::shared_array<float> m_X ( new float [Xsize*3] );
   for (int i = 0; i < Xsize; i++)
   {
     m_X[i*3 + 0] = h_Xx[i];
     m_X[i*3 + 1] = h_Xy[i];
     m_X[i*3 + 2] = h_Xz[i];
   }
-  flann::Matrix<float> mat_X(m_X, Xsize, 3); // Xsize rows and 3 columns
+  flann::Matrix<float> mat_X(m_X.get(), Xsize, 3); // Xsize rows and 3 columns
   flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams() );
   index.buildIndex();   
 
@@ -181,7 +209,7 @@ void icp(int Xsize, int Ysize,
 
     // find closest points
     
-    float *m_Y = new float [Ysize*3];
+    boost::shared_array<float> m_Y ( new float [Ysize*3] );
     #pragma omp parallel for
     for (int i = 0; i < Ysize; i++)
     {
@@ -189,7 +217,7 @@ void icp(int Xsize, int Ysize,
       m_Y[i*3 + 1] = (h_R[3]*h_Yx[i] + h_R[4]*h_Yy[i] + h_R[5]*h_Yz[i]) + h_t[1];
       m_Y[i*3 + 2] = (h_R[6]*h_Yx[i] + h_R[7]*h_Yy[i] + h_R[8]*h_Yz[i]) + h_t[2];
     }
-    flann::Matrix<float> mat_Y(m_Y, Ysize, 3); // Ysize rows and 3 columns
+    flann::Matrix<float> mat_Y(m_Y.get(), Ysize, 3); // Ysize rows and 3 columns
     
     
     std::vector< std::vector<size_t> > indices(Ysize);
@@ -200,6 +228,10 @@ void icp(int Xsize, int Ysize,
 		    dists,
 		    1, // k of knn
 		    flann::SearchParams() );
+
+    float* h_Xcorrx = h_Xcorr.get() + Ysize*0;
+    float* h_Xcorry = h_Xcorr.get() + Ysize*1;
+    float* h_Xcorrz = h_Xcorr.get() + Ysize*2;
     
     #pragma omp parallel for
     for(int i = 0; i < Ysize; i++){
@@ -209,7 +241,6 @@ void icp(int Xsize, int Ysize,
       h_Xcorrz[i] = h_Xz[indices[i][0]];
     }
     
-    delete [] m_Y;
     
 
     // compute S
@@ -224,13 +255,13 @@ void icp(int Xsize, int Ysize,
       float one = 1.0f, zero = 0.0f;
       sgemm_((char*)"t", (char*)"n", 
 	     &three, &three, &Ysize, // m,n,k
-	     &one, h_Xcorr, &Ysize, // alpha, op(A), lda
-	     h_Y, &Ysize,  // op(B), ldb
+	     &one, h_Xcorr.get(), &Ysize, // alpha, op(A), lda
+	     h_Y.get(), &Ysize,  // op(B), ldb
 	     &zero, h_S, &three);  // beta, C, ldc
     }
     
   
-    findCenter(h_Xcorr, Ysize, h_Xc);
+    findCenter(h_Xcorr.get(), Ysize, h_Xc);
 
 
 
@@ -255,9 +286,6 @@ void icp(int Xsize, int Ysize,
 
 
   }
-
-  delete [] m_X;
-  delete [] h_Xcorr;
 
 
 }

@@ -98,9 +98,8 @@ void emicp_cpu(int Xsize, int Ysize,
                float* h_R, float* h_t,
 	       const registrationParameters &param
 	       );
-void icp(int Xsize, int Ysize,
-         const float* h_X,
-         const float* h_Y,
+void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target, 
+	 const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_source,
 	 float* h_R, float* h_t, 
 	 const registrationParameters &param);
 

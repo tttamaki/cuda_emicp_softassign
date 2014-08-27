@@ -159,7 +159,7 @@ void icp(int Xsize, int Ysize,
   
   
 
-  
+  // building flann index
   float *m_X = new float [Xsize*3];
   for (int i = 0; i < Xsize; i++)
   {
@@ -168,7 +168,6 @@ void icp(int Xsize, int Ysize,
     m_X[i*3 + 2] = h_Xz[i];
   }
   flann::Matrix<float> mat_X(m_X, Xsize, 3); // Xsize rows and 3 columns
-  
   flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams() );
   index.buildIndex();   
 

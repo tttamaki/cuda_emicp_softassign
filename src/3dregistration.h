@@ -79,7 +79,6 @@ typedef struct {
 // uncomment if you do not use the viewer.
 //#define NOVIEWER
 
-#if 0
 void softassign(const int Xsize, const int Ysize,
 		const float* h_X,
 		const float* h_Y,
@@ -99,7 +98,6 @@ void emicp_cpu(int Xsize, int Ysize,
                float* h_R, float* h_t,
 	       const registrationParameters &param
 	       );
-#endif
 void icp(int Xsize, int Ysize,
          const float* h_X,
          const float* h_Y,

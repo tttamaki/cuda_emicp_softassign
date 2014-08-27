@@ -36,7 +36,6 @@
 //#define NOVIEWER
 
 #include "3dregistration.h"
-#include "engine.h"
 
 using namespace std;
 
@@ -251,7 +250,7 @@ void emicp(int Xsize, int Ysize,
 	   const float* h_X,
 	   const float* h_Y,
 	   float* h_R, float* h_t, 
-	   registrationParameters param
+	   const registrationParameters &param
 	   ){
 
   
@@ -441,13 +440,6 @@ void emicp(int Xsize, int Ysize,
 
     fprintf(stderr, "%d iter. sigma_p2 %f  ", Titer++, sigma_p2);
     fprintf(stderr, "time %.10f [s]\n", sdkGetTimerValue(&timerTotal) / 1000.0f);
-
-
-#ifndef NOVIEWER
-      if(!param.noviewer)
-	if (!EngineIteration()) // PointCloudViewer
-	  break;
-#endif
 
 
       //
@@ -654,9 +646,19 @@ void emicp(int Xsize, int Ysize,
       ///////////////////////////////////////////////////////////////////////////////////// 
 
 #ifndef NOVIEWER
-      if(!param.noviewer)
-	UpdatePointCloud2(Ysize, param.points2, h_Y, h_R, h_t);
+      if(!param.noviewer){
+	Eigen::Matrix4f transformation;
+	transformation <<
+	h_R[0], h_R[1], h_R[2], h_t[0],
+	h_R[3], h_R[4], h_R[5], h_t[1],
+	h_R[6], h_R[7], h_R[8], h_t[2],
+	0, 0, 0, 1;
+	pcl::transformPointCloud ( *param.cloud_source, *param.cloud_source_trans, transformation );
+	param.viewer->updatePointCloud ( param.cloud_source_trans, *param.source_trans_color, "source trans" );
+	param.viewer->spinOnce();
+      }
 #endif
+
 
 
     sigma_p2 *= sigma_factor;

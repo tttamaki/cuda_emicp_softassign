@@ -411,7 +411,8 @@ int main(int argc, char** argv){
     
     param.viewer->resetCamera();
     
-    param.viewer->spin();
+    if(!param.nostop)
+      param.viewer->spin();
     
   }
 
@@ -447,7 +448,6 @@ int main(int argc, char** argv){
       icp(Xsize, Ysize, h_X, h_Y, // input
 	  h_R, h_t, // return
 	  param);
-#if 0
       else if(isEMICP)
 	emicp(Xsize, Ysize, h_X, h_Y, // input
 	      h_R, h_t, // return
@@ -460,7 +460,7 @@ int main(int argc, char** argv){
 	  softassign(Xsize, Ysize, h_X, h_Y, // input
 		     h_R, h_t, //return
 	      param);
-#endif
+
 
     end = clock();
     printf("elapsed %f\n", (double)(end - start) / CLOCKS_PER_SEC);
@@ -474,10 +474,10 @@ int main(int argc, char** argv){
 	saveRTtoFile(h_R, h_t, saveRTtoFilename);
     }
     
-    
-    
-    if(!param.noviewer && !param.nostop)
-       param.viewer->spin();
+    if(param.noviewer || param.nostop)
+      break;
+    else
+      param.viewer->spin();
       
   }
   while( !param.viewer->wasStopped() );

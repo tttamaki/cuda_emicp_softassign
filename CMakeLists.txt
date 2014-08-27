@@ -36,7 +36,7 @@ message("CUDA_CUBLAS_LIBRARIES: " ${CUDA_CUBLAS_LIBRARIES} )
 message("CUDA_TOOLKIT_ROOT_DIR: " ${CUDA_TOOLKIT_ROOT_DIR} )
 
 
-#find_library(ATLAS atlas)
+find_library(ATLAS atlas)
 
 include(FindLAPACK)
 add_definitions ( ${LAPACK_LINKER_FLAGS} )
@@ -45,8 +45,7 @@ add_definitions ( ${LAPACK_LINKER_FLAGS} )
 
 
 
-#cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp src/softassign.cu src/emicp.cu )
-add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp )
+cuda_add_executable ( ${PROJECT_NAME} src/main.cpp src/findRTfromS.cpp src/icp.cpp src/emicp_cpu.cpp src/softassign.cu src/emicp.cu )
 target_link_libraries ( ${PROJECT_NAME} ${PCL_LIBRARIES} ${LAPACK_LIBRARIES} )
 
-#CUDA_ADD_CUBLAS_TO_TARGET ( ${PROJECT_NAME} )
+CUDA_ADD_CUBLAS_TO_TARGET ( ${PROJECT_NAME} )

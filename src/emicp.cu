@@ -65,17 +65,15 @@ updateA(int rowsA, int colsA, int pitchA,
   __shared__ float YxShare[BLOCK_SIZE];
   __shared__ float YyShare[BLOCK_SIZE];
   __shared__ float YzShare[BLOCK_SIZE];
-  __shared__ float RShare[9]; // BLOCK_SIZE >= 9 is assumed
-  __shared__ float tShare[3]; // BLOCK_SIZE >= 3 is assumed
+  __shared__ float RShare[9];
+  __shared__ float tShare[3];
 
-  if(threadIdx.y == 0)
-    if(// 0 <= threadIdx.x &&  // threadIdx.x is unsigned int, so always positive
-       threadIdx.x < 9){
-      RShare[threadIdx.x] = d_R[threadIdx.x];
-      if(threadIdx.x < 3)
-	tShare[threadIdx.x] = d_t[threadIdx.x];
-    }
-
+  if(threadIdx.x == 0 && threadIdx.y == 0)
+  {
+    for (int i = 0; i < 9; i++) RShare[i] = d_R[i];
+    for (int i = 0; i < 3; i++) tShare[i] = d_t[i];
+  }
+  
   if(r < rowsA && c < colsA){ // check for only inside the matrix A
 
     if(threadIdx.x == 0){

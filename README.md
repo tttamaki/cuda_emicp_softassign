@@ -1,64 +1,57 @@
 CUDA-based implementations of Softassign and EM-ICP, CVPR2010 Demo
+====
+
+CUDA-based implementations of Softassign and EM-ICP, CVPR2010 Demo
 http://home.hiroshima-u.ac.jp/tamaki/study/cuda_softassign_emicp/
 
 Toru Tamaki, Miho Abe, Bisser Raytchev, Kazufumi Kaneda, Marcos Slomp (Hiroshima University, Japan)
 Contact address: tamaki@hiroshima-u.ac.jp
 
-Fri Apr  5 18:08:45 JST 2013
+Wed Aug 27 19:11:45 JST 2014
 
 
 
-* Requirements
+Requirements
+---
 
-CUDA 5.0
+CUDA 6.5
 
-
-* How to use the demo application
-
-** Windows : sorry, we don't have it
-
-** Fedore 16 (x86_64)
-
-  $ ./src/CUDA_EMICP_SOFTASSIGN --help
+PCL 1.7
+FLANN
+Boost
+lapack/blas
 
 
-** Usage
-============================================================
-CUDA_EMICP_SOFTASSIGN [options]
+Usage
+---
+```
+cuda_emicp_softassign [options]
+```
 
 This demo application finds R and t such that min ||X - (R*Y+t) || for given 3D point sets X and Y.
 
 At the start, the demo application popups a window where two point sets are shown.
-    Press 'q' to start (restart) the alignment (after and during the alignment).
-    Press 'Esc' to quit the demo (after and during the alignment).a
-    Press either '1', '2', or '3' to toggle on/off of the point sets.
 
-Examples:
-$ ./src/CUDA_EMICP_SOFTASSIGN -pointFileX=./data/P101.txt -Xsize=101 -pointFileY=./data/Qnew101.txt -Ysize=101 -emicp
+### Examples
+$ ./build/cuda_emicp_softassign -pointFileX=./data/P101.txt -Xsize=101 -pointFileY=./data/Qnew101.txt -Ysize=101 -emicp
     This aligns P101.txt and Qnew101.txt (both of 101 points) by using EM-ICP.
 
-$ ./src/CUDA_EMICP_SOFTASSIGN -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=5 -softassign
+$ ./build/cuda_emicp_softassign -ply -pointFileX=./data/bun000.ply -pointFileY=./data/bun045.ply -pointsReductionRate=5 -softassign
     This aligns bun000.ply and bun045.ply by using Softassign. Numbers of points in both point sets are reduced (randomly approximately) 5% of its original numbers.
 
-Demonstrations:
-
+### Demonstrations
 $ make -f Makefile.demo demo
 
 
 
 
-Options:
+### Options
 
 Files of 3D point sets:
 -pointFileX=filename
 -pointFileY=filename
     [string] Filename of two 3D point sets. Requred.
     Format of file: in each line, x y z coordinates are stored. That’s all. Number of points are specified with Xsize and Ysize options.
--Xsize=***
--Ysize=***
-    [int] Numbers of points in pointFileX and pointFileY. Required unless -ply is specified.
--ply
-    Assume that pointFileX and pointFileY are the PLY format. x,y,z of “property float” in “element vertex” are loaded as x,y,z coordinates.
 
 Reduction number of points:
 [-pointsReductionRate=** | -pointsReductionRateX=** -pointsReductionRateY=**]
@@ -125,23 +118,21 @@ r31 r32 r33
 tx ty tz
 ---------
 
-============================================================
 
-* Build the demo application
+Build the demo application
+---
 
-** Fedora 16
-*** prepare packages:
-$ yum install atlas atlas-devel "freeglut*"
-*** see src/Makefile and modify the following lines acoording to your system:
- # CUDA_INSTALL_PATH := /usr/local/cuda-5.0
- # CUDASDK_INSTALL_PATH := /usr/local/cuda-5.0/samples/common/inc
- # LAPACKLIB := -L/usr/lib64/atlas -llapack -lptf77blas
- # GLUTLIB := -lglut -lGLU -lGL
-*** make
-$ cd src; make
+### Ubunts 14.04LTS
 
-** other linux
-see src/Makefile and modify it acoording to your system.
+#### prepare packages:
+
+sudo apt-get install libpcl-1.7-all-dev libflann-dev libboost-all-dev ccache libatlas-dev libblas-dev liblapack-dev cmake
+
+#### build
+
+mkdir build
+cmake -D CMAKE_BUILD_TYPE=Release -D CMAKE_VERBOSE_MAKEFILE=1 ..
+
 
 
 
@@ -149,24 +140,22 @@ see src/Makefile and modify it acoording to your system.
 * How to use the API
 
 ** interfaces:
-void        icp(int Xsize, int Ysize, const float* h_X, const float* h_Y, float* h_R, float* h_t, registrationParameters param)
-void softassign(int Xsize, int Ysize, const float* h_X, const float* h_Y, float* h_R, float* h_t, registrationParameters param)
-void      emicp(int Xsize, int Ysize, const float* h_X, const float* h_Y, float* h_R, float* h_t, registrationParameters param)
-void   emicpcpu(int Xsize, int Ysize, const float* h_X, const float* h_Y, float* h_R, float* h_t, registrationParameters param)
+void        icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_targetX,
+		const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sourceY,float* h_R, float* h_t, registrationParameters param)
+void softassign(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_targetX,
+		const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sourceY, float* h_R, float* h_t, registrationParameters param)
+void      emicp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_targetX,
+		const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sourceY,float* h_R, float* h_t, registrationParameters param)
+void   emicpcpu(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_targetX,
+		const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_sourceY,float* h_R, float* h_t, registrationParameters param)
 
 To use these functions,
   compile your program with either icp.cpp, softassign.cu, emicp.cu, or emicp_cpu.cpp.
-    incldue 3dregistration.h.
+  incldue 3dregistration.h.
 
 ** description
-int Xsize, int Ysize [Input]
-    Specify the numbers of points in h_X and h_Y.
-const float* h_X, const float* h_Y [Output]
-    Specify the pointers where point sets X and Y are stored.
-    Note that h_X must store points in the order of
-    [X_x1 X_x2 .... X_x(Xsize) X_y1 X_y2 .... X_y(Xsize)  X_z1 X_z2 .... X_z(Xsize) ]
-    where (X_xi X_yi X_zi) is the i-th point in X.
-    h_Y must do as the same way.
+cloud_targetX, cloud_sourceY [Input]
+    Specify the pointers to pcl::PointCloud storing point sets X and Y.
 float* h_R, float* h_t [Input/Output]
     On entry, initial values for rotation matrix R and translation vector t must be given. Usually, R=3x3 identity matrix, t=zero vector.
     On exit, estimated R and t are stored.
@@ -182,9 +171,6 @@ If you do not use the viewer, define
 #define NOVIEWER
 when compling icp.cpp, softassign.cu, emicp.cu, or emicp_cpu.cpp.
 
-If you prefer to use the viewer,
-- compile algebra.cpp, engine.cpp, and orbcam.cpp and link them with freeglut.
-- set pointers for the point sets in registrationParameters param.points{1,2,3} as shown in InitPointCloud() in main.cpp (or simple use InitPointCloud()).
 
 
 

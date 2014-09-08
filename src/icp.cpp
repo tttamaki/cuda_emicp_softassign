@@ -161,9 +161,7 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
 
   findCenter(h_Y.get(), Ysize, h_Yc);
 
-  
-  
-  
+
 
   // building flann index
   boost::shared_array<float> m_X ( new float [Xsize*3] );
@@ -177,8 +175,12 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
   flann::Index< flann::L2<float> > index( mat_X, flann::KDTreeIndexParams() );
   index.buildIndex();   
 
-
-
+  boost::shared_array<float> m_Y ( new float [Ysize*3] );
+  float* h_Xcorrx = h_Xcorr.get() + Ysize*0;
+  float* h_Xcorry = h_Xcorr.get() + Ysize*1;
+  float* h_Xcorrz = h_Xcorr.get() + Ysize*2;
+  
+  
   
   // ICP main loop
 
@@ -187,7 +189,7 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
 
     // find closest points
     
-    boost::shared_array<float> m_Y ( new float [Ysize*3] );
+
     #pragma omp parallel for
     for (int i = 0; i < Ysize; i++)
     {
@@ -207,9 +209,7 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
 		    1, // k of knn
 		    flann::SearchParams() );
 
-    float* h_Xcorrx = h_Xcorr.get() + Ysize*0;
-    float* h_Xcorry = h_Xcorr.get() + Ysize*1;
-    float* h_Xcorrz = h_Xcorr.get() + Ysize*2;
+
     
     #pragma omp parallel for
     for(int i = 0; i < Ysize; i++){
@@ -219,7 +219,15 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
       h_Xcorrz[i] = h_Xz[indices[i][0]];
     }
     
+    findCenter(h_Xcorr.get(), Ysize, h_Xc);
     
+    #pragma omp parallel for
+    for(int i = 0; i < Ysize; i++){
+      // put the closest point to Ycorr
+      h_Xcorrx[i] -= h_Xc[0];
+      h_Xcorry[i] -= h_Xc[1];
+      h_Xcorrz[i] -= h_Xc[2];
+    }    
 
     // compute S
 
@@ -239,7 +247,7 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
     }
     
   
-    findCenter(h_Xcorr.get(), Ysize, h_Xc);
+
 
 
 

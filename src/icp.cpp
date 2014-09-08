@@ -181,7 +181,19 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
   float* h_Xcorrz = h_Xcorr.get() + Ysize*2;
   
   
+  boost::shared_array<float> h_Ycentered ( new float [Ysize*3] );
+  {
+    float* h_Ycenteredx = h_Ycentered.get() + Ysize*0;
+    float* h_Ycenteredy = h_Ycentered.get() + Ysize*1;
+    float* h_Ycenteredz = h_Ycentered.get() + Ysize*2;
+    for(int i = 0; i < Ysize; i++){
+      h_Ycenteredx[i] = h_Yx[i] - h_Yc[0];
+      h_Ycenteredy[i] = h_Yy[i] - h_Yc[1];
+      h_Ycenteredz[i] = h_Yz[i] - h_Yc[2];
+    }    
+  }
   
+    
   // ICP main loop
 
   for(int iter=0; iter < maxIteration; iter++){
@@ -242,7 +254,7 @@ void icp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
       sgemm_((char*)"t", (char*)"n", 
 	     &three, &three, &Ysize, // m,n,k
 	     &one, h_Xcorr.get(), &Ysize, // alpha, op(A), lda
-	     h_Y.get(), &Ysize,  // op(B), ldb
+	     h_Ycentered.get(), &Ysize,  // op(B), ldb
 	     &zero, h_S, &three);  // beta, C, ldc
     }
     

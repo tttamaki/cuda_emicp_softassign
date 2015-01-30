@@ -93,7 +93,6 @@ public:
 void pointsReduction(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 		     float random_sampling_percentage, bool initialize_rand = true){
 
-
   isDelete<pcl::PointXYZ> randDel(random_sampling_percentage);
   cloud->points.erase( std::remove_if(cloud->points.begin(), cloud->points.end(), randDel  ), cloud->points.end() );
 
@@ -340,7 +339,10 @@ int main(int argc, char** argv){
     param.viewer->resetCamera();
     
     if(!param.nostop)
+    {
+      cout << "Press q to continue." << endl;
       param.viewer->spin();
+    }
     
   }
 

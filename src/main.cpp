@@ -28,6 +28,7 @@
 #include <cmath>
 #include <ctime>
 #include <cstdlib>
+#include <algorithm>
 
 #include <helper_string.h>
 
@@ -73,25 +74,28 @@ loadFile(const char* fileName,
 }
 
 
-
+template <class T>
+class isDelete
+{
+  float _random_sampling_percentage;
+public:
+  isDelete(float random_sampling_percentage)
+  {
+    srand((long)time(NULL)); 
+    _random_sampling_percentage = random_sampling_percentage / 100.0;
+  };
+  bool operator() (T& val)
+  {
+    return (rand()/(double)RAND_MAX >= _random_sampling_percentage);
+  }
+};
 
 void pointsReduction(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 		     float random_sampling_percentage, bool initialize_rand = true){
 
 
-  if (initialize_rand) srand((long)time(NULL));
-  
-  random_sampling_percentage /= 100.0f;
-
-  pcl::PointCloud<pcl::PointXYZ>::iterator it;
-
-  for (it = cloud->begin(); it != cloud->end(); )
-  {
-    if(rand()/(double)RAND_MAX >= random_sampling_percentage)
-      it = cloud->erase( it );
-    else
-      it++;
-  }
+  isDelete<pcl::PointXYZ> randDel(random_sampling_percentage);
+  cloud->points.erase( std::remove_if(cloud->points.begin(), cloud->points.end(), randDel  ), cloud->points.end() );
 
 }
 

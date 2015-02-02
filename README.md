@@ -68,8 +68,14 @@ Format of file: in each line, x y z coordinates are stored. That’s all. Number
 ```
 -pointsReductionRate=**
     [float] Numbers of points in the files are randomlyl reduced to ** % (approximately). default: no reduction.
+-pointsReductionRateX=**
+    [float] Numbers of points X in the files are randomlyl reduced to ** % (approximately). default: no reduction.
+-pointsReductionRateY=**
+    [float] Numbers of points Y in the files are randomlyl reduced to ** % (approximately). default: no reduction.
 ```
 Example: `-pointsReductionRate=10` then the number of points is reduced to about 10%.
+
+Note: if -pointsReductionRate exists, -pointsReductionRate{X,Y} are ignored.
 
 #### Algorithms:
 ```
@@ -138,6 +144,13 @@ r21 r22 r23
 r31 r32 r33
 tx ty tz
 ```
+
+#### align scales
+```
+-alignScaleOnce
+     two point clouds are aligned in scales at the beginning.
+```
+
 
 Build the demo application
 ---

@@ -99,8 +99,66 @@ void pointsReduction(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 }
 
 
+void alignScaleOnce1(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1,
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2)
+{
+  Eigen::Vector4f center1, center2;
+  Eigen::Matrix3f covariance1, covariance2;
+  pcl::computeMeanAndCovarianceMatrix (*cloud1, covariance1, center1);
+  pcl::computeMeanAndCovarianceMatrix (*cloud2, covariance2, center2);
 
+  // symmetric scale estimation by Horn 1968
+  float s = sqrt( covariance1.trace() / covariance2.trace() );
+  
+  Eigen::Affine3f Scale;
+  Scale.matrix() <<
+  s, 0, 0, 0,
+  0, s, 0, 0,
+  0, 0, s, 0,
+  0, 0, 0, 1;
+  
+  pcl::transformPointCloud ( *cloud2, *cloud2, Scale );
 
+}
+
+void alignScaleOnce(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud1,
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr cloud2)
+{
+  Eigen::Vector4f center1, center2;
+  Eigen::Matrix3f covariance1, covariance2;
+  pcl::computeMeanAndCovarianceMatrix (*cloud1, covariance1, center1);
+  pcl::computeMeanAndCovarianceMatrix (*cloud2, covariance2, center2);
+
+  std::cout << "scale1 = " << covariance1.trace() << std::endl;
+  std::cout << "scale2 = " << covariance2.trace() << std::endl;
+  
+  
+  Eigen::Affine3f Scale;
+  float s;
+  s = 1.0 / sqrt( covariance1.trace() );
+  s *= sqrt(0.003); // ad-hoc for numerical issue
+  Scale.matrix() <<
+  s, 0, 0, 0,
+  0, s, 0, 0,
+  0, 0, s, 0,
+  0, 0, 0, 1;
+  pcl::transformPointCloud ( *cloud1, *cloud1, Scale );
+
+  s = 1.0 / sqrt( covariance2.trace() );
+  s *= sqrt(0.003); // ad-hoc for numerical issue
+  Scale.matrix() <<
+  s, 0, 0, 0,
+  0, s, 0, 0,
+  0, 0, s, 0,
+  0, 0, 0, 1;
+  pcl::transformPointCloud ( *cloud2, *cloud2, Scale );
+
+  pcl::computeMeanAndCovarianceMatrix (*cloud1, covariance1, center1);
+  pcl::computeMeanAndCovarianceMatrix (*cloud2, covariance2, center2);
+
+  std::cout << "scale1 = " << covariance1.trace() << std::endl;
+  std::cout << "scale2 = " << covariance2.trace() << std::endl;
+}
 
 void init_RT(float *h_R, float *h_t){
 	
@@ -294,18 +352,34 @@ int main(int argc, char** argv){
   loadFile(pointFileY, param.cloud_source);
 
   
+  
+  {
+    if(checkCmdLineFlag(argc, (const char **) argv, "alignScaleOnce"))
+      alignScaleOnce(param.cloud_target, param.cloud_source);
+  }
+  
+  
+  
   float pointsReductionRate;
   if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRate") ) ) {
     pointsReduction(param.cloud_target, pointsReductionRate);
     pointsReduction(param.cloud_source, pointsReductionRate);
-    cout << "number of points are reduced to "
-	 << pointsReductionRate << "% of original." << endl
-	 << "Xsize: " << param.cloud_target->size() << endl
-	 << "Ysize: " << param.cloud_source->size() << endl;
+    cout << "number of points X,Y are reduced to "
+	 << pointsReductionRate << "% of original." << endl;
+  } else {
+    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateX") ) ) {
+      pointsReduction(param.cloud_target, pointsReductionRate);
+      cout << "number of points X are reduced to "
+          << pointsReductionRate << "% of original." << endl;
+    }
+    if ( (pointsReductionRate = getCmdLineArgumentFloat(argc, (const char **) argv, "pointsReductionRateY") ) ) {
+      pointsReduction(param.cloud_source, pointsReductionRate);
+      cout << "number of points Y are reduced to "
+          << pointsReductionRate << "% of original." << endl;
+    }
   }
-  
-
-
+  cout << "Xsize: " << param.cloud_target->size() << endl
+       << "Ysize: " << param.cloud_source->size() << endl;
 
 
 

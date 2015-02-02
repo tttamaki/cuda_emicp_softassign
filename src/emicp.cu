@@ -323,6 +323,8 @@ void emicp(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_target,
   // R, t
   memHostToCUDA(R, 3*3);
   memHostToCUDA(t, 3);
+  CUDA_SAFE_CALL(cudaMemcpy(d_R, h_R, sizeof(float)*3*3, cudaMemcpyHostToDevice));
+  CUDA_SAFE_CALL(cudaMemcpy(d_t, h_t, sizeof(float)*3,   cudaMemcpyHostToDevice));
 
   // S for finding R, t
   float h_S[9];

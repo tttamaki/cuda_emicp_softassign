@@ -16,12 +16,12 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/" ${CMAKE_MODULE_PATH})
 include(FindFlann)
 
 
-FIND_PACKAGE(OpenMP REQUIRED)
-if(OPENMP_FOUND)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
-endif()
+# FIND_PACKAGE(OpenMP REQUIRED)
+# if(OPENMP_FOUND)
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
+# endif()
 
 find_package(Boost 1.54 REQUIRED)
 
@@ -50,3 +50,14 @@ cuda_add_executable ( ${PROJECT_NAME} src/3dregistration.h src/main.cpp src/find
 target_link_libraries ( ${PROJECT_NAME} ${PCL_LIBRARIES} ${LAPACK_LIBRARIES} )
 
 CUDA_ADD_CUBLAS_TO_TARGET ( ${PROJECT_NAME} )
+
+
+
+add_executable (add_rigid_transform src/add_rigid_transform.cpp)
+target_link_libraries (add_rigid_transform ${PCL_LIBRARIES})
+
+add_executable (pcd2ply src/pcd2ply.cpp)
+target_link_libraries (pcd2ply ${PCL_LIBRARIES})
+
+add_executable (merge src/merge.cpp)
+target_link_libraries (merge ${PCL_LIBRARIES})

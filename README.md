@@ -1,3 +1,10 @@
+CAUTION
+====
+
+The following instruciton is too old. Now it takes point cloud files instead of txt files.
+Please see src/main.cpp for more detail.
+
+
 CUDA-based implementations of Softassign and EM-ICP
 ====
 
